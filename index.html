@@ -1018,13 +1018,11 @@ textarea.field {
     </div>
     <form id="authForm">
       <div class="form-group full">
-        <label class="label" for="authEmail">Email</label>
-        <input class="field" type="email" id="authEmail" autocomplete="email" required placeholder="輸入她的 Email">
-        <div class="auth-note" id="authNote">不用密碼。輸入 Email 後會收到登入連結，點開就能同步自己的資料。</div>
+        <div class="auth-note" id="authNote">使用 Google 帳號登入，不需要另外設定密碼。登入後班表會同步到自己的帳號。</div>
       </div>
       <div class="row-actions">
         <button type="button" class="secondary-btn" id="cancelAuthBtn">稍後</button>
-        <button type="submit" class="primary-btn" id="sendAuthLinkBtn">寄登入連結</button>
+        <button type="submit" class="primary-btn" id="googleAuthBtn">使用 Google 登入</button>
       </div>
     </form>
   </div>
@@ -1150,8 +1148,6 @@ textarea.field {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 const STORAGE_KEY = "part_time_pay_app_v1";
-const AUTH_EMAIL_KEY = "part_time_pay_auth_email";
-const AUTH_PENDING_EMAIL_KEY = "part_time_pay_pending_email";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
 const FIREBASE_CONFIG = {
@@ -1184,9 +1180,8 @@ const els = {
   closeAuthModalBtn: document.getElementById("closeAuthModalBtn"),
   cancelAuthBtn: document.getElementById("cancelAuthBtn"),
   authForm: document.getElementById("authForm"),
-  authEmail: document.getElementById("authEmail"),
   authNote: document.getElementById("authNote"),
-  sendAuthLinkBtn: document.getElementById("sendAuthLinkBtn"),
+  googleAuthBtn: document.getElementById("googleAuthBtn"),
   summaryPay: document.getElementById("summaryPay"),
   summaryHours: document.getElementById("summaryHours"),
   summaryShiftCount: document.getElementById("summaryShiftCount"),
@@ -1260,7 +1255,6 @@ let db = null;
 let fbUser = null;
 let syncTimer = null;
 let isCloudApplying = false;
-let pendingEmailLink = "";
 
 function loadState() {
   let loaded;
@@ -1325,28 +1319,12 @@ function renderAuthButton() {
   els.authBtn.classList.add("danger");
 }
 
-function getEmailActionUrl() {
-  return `${window.location.origin}${window.location.pathname}`;
-}
-
-function cleanEmailLinkUrl() {
-  if (!window.history || !window.history.replaceState) return;
-  const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash || ""}`;
-  window.history.replaceState({}, document.title, cleanUrl);
-}
-
-function openAuthModal(mode = "send") {
-  const savedEmail = localStorage.getItem(AUTH_EMAIL_KEY) || localStorage.getItem(AUTH_PENDING_EMAIL_KEY) || "";
-  els.authEmail.value = savedEmail;
-  const completing = mode === "complete";
-  els.authModalTitle.textContent = completing ? "完成登入" : "登入帳號";
-  els.authNote.textContent = completing
-    ? "請輸入剛剛收信的 Email，完成後就會同步自己的資料。"
-    : "不用密碼。輸入 Email 後會收到登入連結，點開就能同步自己的資料。";
-  els.sendAuthLinkBtn.textContent = completing ? "完成登入" : "寄登入連結";
+function openAuthModal() {
+  els.authModalTitle.textContent = "登入帳號";
+  els.authNote.textContent = "使用 Google 帳號登入，不需要另外設定密碼。登入後班表會同步到自己的帳號。";
+  els.googleAuthBtn.textContent = "使用 Google 登入";
   els.authModal.classList.add("open");
   els.authModal.setAttribute("aria-hidden", "false");
-  window.setTimeout(() => els.authEmail.focus(), 80);
 }
 
 function closeAuthModal() {
@@ -1354,27 +1332,10 @@ function closeAuthModal() {
   els.authModal.setAttribute("aria-hidden", "true");
 }
 
-async function sendAuthLink(email) {
-  const actionCodeSettings = {
-    url: getEmailActionUrl(),
-    handleCodeInApp: true
-  };
-  await auth.sendSignInLinkToEmail(email, actionCodeSettings);
-  localStorage.setItem(AUTH_PENDING_EMAIL_KEY, email);
-  localStorage.setItem(AUTH_EMAIL_KEY, email);
-  setSyncStatus("ok", "已寄信");
-  toast("已寄出登入連結");
-  els.authNote.textContent = "已寄出登入連結，請到信箱點開連結完成登入。";
-}
-
-async function completeEmailLinkSignIn(email, link) {
-  await auth.signInWithEmailLink(email, link);
-  localStorage.setItem(AUTH_EMAIL_KEY, email);
-  localStorage.removeItem(AUTH_PENDING_EMAIL_KEY);
-  pendingEmailLink = "";
-  cleanEmailLinkUrl();
-  closeAuthModal();
-  toast("登入完成");
+function googleProvider() {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: "select_account" });
+  return provider;
 }
 
 async function handleAuthSubmit(event) {
@@ -1383,23 +1344,28 @@ async function handleAuthSubmit(event) {
     setSyncStatus("error", "雲端未載入");
     return;
   }
-  const email = els.authEmail.value.trim();
-  if (!email) {
-    toast("請輸入 Email");
-    return;
-  }
 
-  els.sendAuthLinkBtn.disabled = true;
+  els.googleAuthBtn.disabled = true;
   try {
-    const link = pendingEmailLink || (auth.isSignInWithEmailLink(window.location.href) ? window.location.href : "");
-    if (link) await completeEmailLinkSignIn(email, link);
-    else await sendAuthLink(email);
+    setSyncStatus("syncing", "登入中");
+    await auth.signInWithPopup(googleProvider());
+    closeAuthModal();
+    toast("登入完成");
   } catch (err) {
     console.error(err);
+    if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment"].includes(err.code)) {
+      await auth.signInWithRedirect(googleProvider());
+      return;
+    }
+    if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
+      setSyncStatus("", "請登入");
+      toast("已取消登入");
+      return;
+    }
     setSyncStatus("error", "登入失敗");
-    toast("登入失敗，請確認 Firebase 設定");
+    toast("請確認 Google 登入已啟用");
   } finally {
-    els.sendAuthLinkBtn.disabled = false;
+    els.googleAuthBtn.disabled = false;
   }
 }
 
@@ -1502,14 +1468,16 @@ function initCloud() {
     db = firebase.firestore(fbApp);
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
     setSyncStatus("syncing", "連線中");
-    pendingEmailLink = auth.isSignInWithEmailLink(window.location.href) ? window.location.href : "";
+    auth.getRedirectResult().catch(err => {
+      console.error(err);
+      setSyncStatus("error", "登入失敗");
+    });
     auth.onAuthStateChanged(async user => {
       try {
         if (!user) {
           fbUser = null;
           renderAuthButton();
-          if (pendingEmailLink) openAuthModal("complete");
-          else setSyncStatus("", "請登入");
+          setSyncStatus("", "請登入");
           return;
         }
         fbUser = user;
@@ -1520,14 +1488,6 @@ function initCloud() {
         setSyncStatus("error", "登入失敗");
       }
     });
-    if (pendingEmailLink) {
-      const email = localStorage.getItem(AUTH_PENDING_EMAIL_KEY) || localStorage.getItem(AUTH_EMAIL_KEY);
-      if (email) completeEmailLinkSignIn(email, pendingEmailLink).catch(err => {
-        console.error(err);
-        openAuthModal("complete");
-      });
-      else openAuthModal("complete");
-    }
   } catch (err) {
     console.error(err);
     setSyncStatus("error", "雲端失敗");
