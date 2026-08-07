@@ -145,6 +145,11 @@ button {
   font-weight: 850;
 }
 
+.sync-btn.danger {
+  border-color: #f3caca;
+  color: var(--danger);
+}
+
 .month-switch {
   display: flex;
   align-items: center;
@@ -726,6 +731,13 @@ textarea.field {
   font-weight: 900;
 }
 
+.auth-note {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.55;
+}
+
 .close-btn {
   width: 34px;
   height: 34px;
@@ -802,6 +814,7 @@ textarea.field {
         <div class="sync-row">
           <div class="sync-pill" id="syncStatus"><span class="sync-dot"></span><span id="syncText">本機資料</span></div>
           <button class="sync-btn" id="manualSyncBtn" type="button">同步</button>
+          <button class="sync-btn" id="authBtn" type="button">登入</button>
         </div>
       </div>
       <div class="month-switch" aria-label="切換月份">
@@ -997,6 +1010,26 @@ textarea.field {
   </nav>
 </div>
 
+<div class="modal" id="authModal" aria-hidden="true">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="sheet-title" id="authModalTitle">登入帳號</div>
+      <button class="close-btn" id="closeAuthModalBtn" aria-label="關閉">×</button>
+    </div>
+    <form id="authForm">
+      <div class="form-group full">
+        <label class="label" for="authEmail">Email</label>
+        <input class="field" type="email" id="authEmail" autocomplete="email" required placeholder="輸入她的 Email">
+        <div class="auth-note" id="authNote">不用密碼。輸入 Email 後會收到登入連結，點開就能同步自己的資料。</div>
+      </div>
+      <div class="row-actions">
+        <button type="button" class="secondary-btn" id="cancelAuthBtn">稍後</button>
+        <button type="submit" class="primary-btn" id="sendAuthLinkBtn">寄登入連結</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 <div class="modal" id="editShiftModal" aria-hidden="true">
   <div class="sheet">
     <div class="sheet-head">
@@ -1117,6 +1150,8 @@ textarea.field {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
 const STORAGE_KEY = "part_time_pay_app_v1";
+const AUTH_EMAIL_KEY = "part_time_pay_auth_email";
+const AUTH_PENDING_EMAIL_KEY = "part_time_pay_pending_email";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
 const FIREBASE_CONFIG = {
@@ -1143,6 +1178,15 @@ const els = {
   syncStatus: document.getElementById("syncStatus"),
   syncText: document.getElementById("syncText"),
   manualSyncBtn: document.getElementById("manualSyncBtn"),
+  authBtn: document.getElementById("authBtn"),
+  authModal: document.getElementById("authModal"),
+  authModalTitle: document.getElementById("authModalTitle"),
+  closeAuthModalBtn: document.getElementById("closeAuthModalBtn"),
+  cancelAuthBtn: document.getElementById("cancelAuthBtn"),
+  authForm: document.getElementById("authForm"),
+  authEmail: document.getElementById("authEmail"),
+  authNote: document.getElementById("authNote"),
+  sendAuthLinkBtn: document.getElementById("sendAuthLinkBtn"),
   summaryPay: document.getElementById("summaryPay"),
   summaryHours: document.getElementById("summaryHours"),
   summaryShiftCount: document.getElementById("summaryShiftCount"),
@@ -1216,6 +1260,7 @@ let db = null;
 let fbUser = null;
 let syncTimer = null;
 let isCloudApplying = false;
+let pendingEmailLink = "";
 
 function loadState() {
   let loaded;
@@ -1266,6 +1311,112 @@ function jobColor(jobId) {
 function setSyncStatus(status, text) {
   els.syncStatus.className = `sync-pill ${status || ""}`.trim();
   els.syncText.textContent = text;
+}
+
+function renderAuthButton() {
+  if (!fbUser) {
+    els.authBtn.textContent = "登入";
+    els.authBtn.title = "登入帳號";
+    els.authBtn.classList.remove("danger");
+    return;
+  }
+  els.authBtn.textContent = "登出";
+  els.authBtn.title = fbUser.email || "已登入";
+  els.authBtn.classList.add("danger");
+}
+
+function getEmailActionUrl() {
+  return `${window.location.origin}${window.location.pathname}`;
+}
+
+function cleanEmailLinkUrl() {
+  if (!window.history || !window.history.replaceState) return;
+  const cleanUrl = `${window.location.origin}${window.location.pathname}${window.location.hash || ""}`;
+  window.history.replaceState({}, document.title, cleanUrl);
+}
+
+function openAuthModal(mode = "send") {
+  const savedEmail = localStorage.getItem(AUTH_EMAIL_KEY) || localStorage.getItem(AUTH_PENDING_EMAIL_KEY) || "";
+  els.authEmail.value = savedEmail;
+  const completing = mode === "complete";
+  els.authModalTitle.textContent = completing ? "完成登入" : "登入帳號";
+  els.authNote.textContent = completing
+    ? "請輸入剛剛收信的 Email，完成後就會同步自己的資料。"
+    : "不用密碼。輸入 Email 後會收到登入連結，點開就能同步自己的資料。";
+  els.sendAuthLinkBtn.textContent = completing ? "完成登入" : "寄登入連結";
+  els.authModal.classList.add("open");
+  els.authModal.setAttribute("aria-hidden", "false");
+  window.setTimeout(() => els.authEmail.focus(), 80);
+}
+
+function closeAuthModal() {
+  els.authModal.classList.remove("open");
+  els.authModal.setAttribute("aria-hidden", "true");
+}
+
+async function sendAuthLink(email) {
+  const actionCodeSettings = {
+    url: getEmailActionUrl(),
+    handleCodeInApp: true
+  };
+  await auth.sendSignInLinkToEmail(email, actionCodeSettings);
+  localStorage.setItem(AUTH_PENDING_EMAIL_KEY, email);
+  localStorage.setItem(AUTH_EMAIL_KEY, email);
+  setSyncStatus("ok", "已寄信");
+  toast("已寄出登入連結");
+  els.authNote.textContent = "已寄出登入連結，請到信箱點開連結完成登入。";
+}
+
+async function completeEmailLinkSignIn(email, link) {
+  await auth.signInWithEmailLink(email, link);
+  localStorage.setItem(AUTH_EMAIL_KEY, email);
+  localStorage.removeItem(AUTH_PENDING_EMAIL_KEY);
+  pendingEmailLink = "";
+  cleanEmailLinkUrl();
+  closeAuthModal();
+  toast("登入完成");
+}
+
+async function handleAuthSubmit(event) {
+  event.preventDefault();
+  if (!auth) {
+    setSyncStatus("error", "雲端未載入");
+    return;
+  }
+  const email = els.authEmail.value.trim();
+  if (!email) {
+    toast("請輸入 Email");
+    return;
+  }
+
+  els.sendAuthLinkBtn.disabled = true;
+  try {
+    const link = pendingEmailLink || (auth.isSignInWithEmailLink(window.location.href) ? window.location.href : "");
+    if (link) await completeEmailLinkSignIn(email, link);
+    else await sendAuthLink(email);
+  } catch (err) {
+    console.error(err);
+    setSyncStatus("error", "登入失敗");
+    toast("登入失敗，請確認 Firebase 設定");
+  } finally {
+    els.sendAuthLinkBtn.disabled = false;
+  }
+}
+
+async function handleAuthButton() {
+  if (!auth) {
+    openAuthModal();
+    return;
+  }
+  if (!fbUser) {
+    openAuthModal();
+    return;
+  }
+  await auth.signOut();
+  fbUser = null;
+  renderAuthButton();
+  setSyncStatus("", "本機資料");
+  toast("已登出");
 }
 
 function cloudDocRef() {
@@ -1331,7 +1482,8 @@ async function syncFromCloud() {
 
 async function manualSync() {
   if (!fbUser || !db) {
-    setSyncStatus("error", "尚未連線");
+    setSyncStatus("error", "請先登入");
+    openAuthModal();
     return;
   }
   await syncFromCloud();
@@ -1350,19 +1502,32 @@ function initCloud() {
     db = firebase.firestore(fbApp);
     auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
     setSyncStatus("syncing", "連線中");
+    pendingEmailLink = auth.isSignInWithEmailLink(window.location.href) ? window.location.href : "";
     auth.onAuthStateChanged(async user => {
       try {
         if (!user) {
-          await auth.signInAnonymously();
+          fbUser = null;
+          renderAuthButton();
+          if (pendingEmailLink) openAuthModal("complete");
+          else setSyncStatus("", "請登入");
           return;
         }
         fbUser = user;
+        renderAuthButton();
         await syncFromCloud();
       } catch (err) {
         console.error(err);
         setSyncStatus("error", "登入失敗");
       }
     });
+    if (pendingEmailLink) {
+      const email = localStorage.getItem(AUTH_PENDING_EMAIL_KEY) || localStorage.getItem(AUTH_EMAIL_KEY);
+      if (email) completeEmailLinkSignIn(email, pendingEmailLink).catch(err => {
+        console.error(err);
+        openAuthModal("complete");
+      });
+      else openAuthModal("complete");
+    }
   } catch (err) {
     console.error(err);
     setSyncStatus("error", "雲端失敗");
@@ -2094,6 +2259,13 @@ function bindEvents() {
   els.exportBtn.addEventListener("click", exportData);
   els.clearAllBtn.addEventListener("click", clearAll);
   els.manualSyncBtn.addEventListener("click", manualSync);
+  els.authBtn.addEventListener("click", handleAuthButton);
+  els.authForm.addEventListener("submit", handleAuthSubmit);
+  els.closeAuthModalBtn.addEventListener("click", closeAuthModal);
+  els.cancelAuthBtn.addEventListener("click", closeAuthModal);
+  els.authModal.addEventListener("click", event => {
+    if (event.target === els.authModal) closeAuthModal();
+  });
 }
 
 function init() {
@@ -2103,6 +2275,7 @@ function init() {
   populateTimeControls("editEnd");
   els.shiftDate.value = todayStr();
   bindEvents();
+  renderAuthButton();
   render();
   initCloud();
 }
