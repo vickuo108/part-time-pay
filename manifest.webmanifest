@@ -2,7 +2,7 @@
   "name": "打工薪水",
   "short_name": "打工薪水",
   "start_url": ".",
-  "display": "standalone",
+  "display": "browser",
   "background_color": "#f5f7f4",
   "theme_color": "#0f8f5f",
   "icons": [
