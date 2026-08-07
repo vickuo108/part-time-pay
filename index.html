@@ -527,6 +527,14 @@ textarea.field.compact-note {
   gap: 8px;
 }
 
+.selected-day-actions {
+  margin-top: 12px;
+}
+
+.selected-day-actions .primary-btn {
+  width: 100%;
+}
+
 .shift-item,
 .job-item {
   border: 1px solid var(--line);
@@ -924,6 +932,9 @@ textarea.field.compact-note {
           <div class="selected-day-title" id="selectedDayTitle"></div>
         </div>
         <div class="selected-day-list" id="selectedDayList"></div>
+        <div class="selected-day-actions">
+          <button class="primary-btn" id="selectedDayAddBtn" type="button">新增班表</button>
+        </div>
       </div>
     </section>
 
@@ -1208,6 +1219,7 @@ const els = {
   calendarGrid: document.getElementById("calendarGrid"),
   selectedDayTitle: document.getElementById("selectedDayTitle"),
   selectedDayList: document.getElementById("selectedDayList"),
+  selectedDayAddBtn: document.getElementById("selectedDayAddBtn"),
   editShiftModal: document.getElementById("editShiftModal"),
   editShiftModalTitle: document.getElementById("editShiftModalTitle"),
   closeEditShiftModalBtn: document.getElementById("closeEditShiftModalBtn"),
@@ -1926,6 +1938,27 @@ function openEditShiftModal() {
   els.editShiftModal.setAttribute("aria-hidden", "false");
 }
 
+function newShiftFromSelectedDate() {
+  if (!state.jobs.length) {
+    toast("請先新增工作");
+    openJobModal();
+    return;
+  }
+  ensureSelectedDateInMonth();
+  els.editShiftModalTitle.textContent = "新增班表";
+  els.saveEditShiftBtn.textContent = "儲存班表";
+  els.editShiftId.value = "";
+  els.editShiftJob.value = state.jobs[0].id;
+  els.editShiftDate.value = selectedDate;
+  setTimeControls("editStart", "");
+  setTimeControls("editEnd", "");
+  els.editShiftBonus.value = "";
+  els.editShiftDeduction.value = "";
+  els.editShiftNote.value = "";
+  syncEditShiftTimes();
+  openEditShiftModal();
+}
+
 function copyShift(id) {
   const shift = state.shifts.find(item => item.id === id);
   if (!shift) return;
@@ -2206,6 +2239,7 @@ function bindEvents() {
     if (action === "copy-shift") copyShift(id);
     if (action === "delete-shift") deleteShift(id);
   });
+  els.selectedDayAddBtn.addEventListener("click", newShiftFromSelectedDate);
   els.openJobModalBtn.addEventListener("click", () => openJobModal());
   els.closeJobModalBtn.addEventListener("click", closeJobModal);
   els.cancelJobBtn.addEventListener("click", closeJobModal);
