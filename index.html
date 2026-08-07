@@ -315,6 +315,10 @@ textarea.field {
   line-height: 1.45;
 }
 
+textarea.field.compact-note {
+  height: 52px;
+}
+
 .field:focus {
   outline: none;
   border-color: var(--green);
@@ -886,7 +890,7 @@ textarea.field {
             </div>
             <div class="form-group full">
               <label class="label" for="shiftNote">備註</label>
-              <textarea class="field" id="shiftNote" placeholder="例如：代班、颱風加給、主管提醒"></textarea>
+              <textarea class="field compact-note" id="shiftNote" placeholder="例如：代班、颱風加給、主管提醒"></textarea>
             </div>
           </div>
 
@@ -1085,7 +1089,7 @@ textarea.field {
         </div>
         <div class="form-group full">
           <label class="label" for="editShiftNote">備註</label>
-          <textarea class="field" id="editShiftNote" placeholder="例如：代班、颱風加給、主管提醒"></textarea>
+          <textarea class="field compact-note" id="editShiftNote" placeholder="例如：代班、颱風加給、主管提醒"></textarea>
         </div>
       </div>
       <div class="row-actions">
