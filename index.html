@@ -1367,20 +1367,9 @@ async function handleAuthSubmit(event) {
   try {
     setSyncStatus("syncing", "登入中");
     await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
-    await auth.signInWithPopup(googleProvider());
-    closeAuthModal();
-    toast("登入完成");
+    await auth.signInWithRedirect(googleProvider());
   } catch (err) {
     console.error(err);
-    if (["auth/popup-blocked", "auth/operation-not-supported-in-this-environment"].includes(err.code)) {
-      await auth.signInWithRedirect(googleProvider());
-      return;
-    }
-    if (err.code === "auth/popup-closed-by-user" || err.code === "auth/cancelled-popup-request") {
-      setSyncStatus("", "請登入");
-      toast("已取消登入");
-      return;
-    }
     setSyncStatus("error", "登入失敗");
     toast("請確認 Google 登入已啟用");
   } finally {
