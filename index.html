@@ -1365,6 +1365,7 @@ async function handleAuthSubmit(event) {
   els.googleAuthBtn.disabled = true;
   try {
     setSyncStatus("syncing", "登入中");
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     await auth.signInWithPopup(googleProvider());
     closeAuthModal();
     toast("登入完成");
@@ -1474,7 +1475,7 @@ async function manualSync() {
   toast("同步完成");
 }
 
-function initCloud() {
+async function initCloud() {
   if (!window.firebase) {
     setSyncStatus("error", "雲端未載入");
     return;
@@ -1483,7 +1484,7 @@ function initCloud() {
     fbApp = firebase.apps.find(app => app.name === FIREBASE_APP_NAME) || firebase.initializeApp(FIREBASE_CONFIG, FIREBASE_APP_NAME);
     auth = firebase.auth(fbApp);
     db = firebase.firestore(fbApp);
-    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+    await auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL);
     setSyncStatus("syncing", "連線中");
     auth.getRedirectResult().catch(err => {
       console.error(err);
