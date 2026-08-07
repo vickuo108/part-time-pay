@@ -1,0 +1,2113 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="theme-color" content="#0f8f5f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="打工薪水">
+<title>打工薪水</title>
+<style>
+:root {
+  --green: #0f8f5f;
+  --green-2: #16a36f;
+  --green-dark: #0b6f4a;
+  --mint: #e9f8f1;
+  --mint-2: #f4fbf7;
+  --line: #dfe7e2;
+  --text: #15231c;
+  --muted: #6e7c74;
+  --danger: #d64b4b;
+  --warn: #c27a1c;
+  --bg: #f5f7f4;
+  --card: #ffffff;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+html,
+body {
+  height: 100%;
+  overflow: hidden;
+  font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 0;
+  cursor: pointer;
+}
+
+.app {
+  width: 100%;
+  max-width: 480px;
+  height: 100dvh;
+  margin: 0 auto;
+  background: var(--bg);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.topbar {
+  padding: calc(14px + env(safe-area-inset-top)) 16px 12px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.topbar-main {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.brand {
+  min-width: 0;
+}
+
+.brand-title {
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: 0;
+}
+
+.brand-sub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.sync-row {
+  margin-top: 7px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.sync-pill {
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: var(--mint);
+  color: var(--green-dark);
+  font-size: 11px;
+  font-weight: 850;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.sync-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: var(--muted);
+  flex-shrink: 0;
+}
+
+.sync-pill.syncing .sync-dot {
+  background: #f59e0b;
+}
+
+.sync-pill.ok .sync-dot {
+  background: var(--green);
+}
+
+.sync-pill.error .sync-dot {
+  background: var(--danger);
+}
+
+.sync-btn {
+  min-height: 24px;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 1px solid #ccebdc;
+  background: #fff;
+  color: var(--green-dark);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.month-switch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.icon-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--card);
+  color: var(--text);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.month-label {
+  min-width: 112px;
+  min-height: 34px;
+  padding: 4px 8px;
+  border-radius: 8px;
+  background: transparent;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--green-dark);
+}
+
+.month-label:active {
+  background: var(--mint);
+}
+
+.content {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 12px 12px 86px;
+}
+
+.view {
+  display: none;
+}
+
+.view.active {
+  display: block;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.summary-card,
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+}
+
+.summary-card {
+  padding: 12px 10px;
+  min-height: 78px;
+}
+
+.summary-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.summary-value {
+  margin-top: 6px;
+  font-size: 18px;
+  font-weight: 900;
+  color: var(--green-dark);
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-note {
+  margin-top: 2px;
+  font-size: 10px;
+  color: var(--muted);
+}
+
+.card {
+  padding: 14px;
+  margin-bottom: 10px;
+}
+
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.card-title {
+  font-size: 15px;
+  font-weight: 850;
+}
+
+.card-sub {
+  margin-top: 3px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.form-group {
+  margin-bottom: 12px;
+}
+
+.form-group.full {
+  grid-column: 1 / -1;
+}
+
+.job-date-row,
+.time-row {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.label {
+  display: block;
+  margin-bottom: 5px;
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--muted);
+}
+
+.field {
+  width: 100%;
+  height: 44px;
+  padding: 10px 11px;
+  border: 1.5px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  color: var(--text);
+  font-size: 15px;
+  appearance: none;
+  -webkit-appearance: none;
+}
+
+textarea.field {
+  height: 76px;
+  resize: none;
+  line-height: 1.45;
+}
+
+.field:focus {
+  outline: none;
+  border-color: var(--green);
+  box-shadow: 0 0 0 3px rgba(15, 143, 95, .12);
+}
+
+.select-wrap {
+  position: relative;
+}
+
+.select-wrap::after {
+  content: "⌄";
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-54%);
+  color: var(--muted);
+  pointer-events: none;
+  font-size: 18px;
+}
+
+.select-wrap .field {
+  padding-right: 34px;
+}
+
+.time-control {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 6px;
+}
+
+.time-control .select-wrap::after {
+  right: 9px;
+}
+
+.time-control .field {
+  padding-left: 9px;
+  padding-right: 25px;
+  font-size: 14px;
+}
+
+.time-hidden {
+  display: none;
+}
+
+.primary-btn,
+.secondary-btn,
+.danger-btn,
+.text-btn {
+  min-height: 42px;
+  border-radius: 8px;
+  padding: 10px 13px;
+  font-weight: 800;
+  font-size: 14px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.primary-btn {
+  width: 100%;
+  background: var(--green);
+  color: #fff;
+}
+
+.secondary-btn {
+  background: var(--mint);
+  color: var(--green-dark);
+  border: 1px solid #ccebdc;
+}
+
+.danger-btn {
+  background: #fff4f4;
+  color: var(--danger);
+  border: 1px solid #f2cccc;
+}
+
+.text-btn {
+  min-height: 34px;
+  padding: 7px 10px;
+  background: transparent;
+  color: var(--green-dark);
+}
+
+.row-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.row-actions > button {
+  flex: 1;
+}
+
+.calendar-weekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 4px;
+}
+
+.calendar-weekday {
+  min-height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.calendar-grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+  gap: 2px;
+}
+
+.calendar-day {
+  min-height: 76px;
+  padding: 5px 3px;
+  border: 1px solid #edf2ee;
+  border-radius: 6px;
+  background: #fff;
+  color: var(--text);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  cursor: pointer;
+}
+
+.calendar-day.outside {
+  background: #f8faf8;
+  color: #a8b3ad;
+}
+
+.calendar-day.selected {
+  border-color: var(--green);
+  box-shadow: 0 0 0 2px rgba(15, 143, 95, .12);
+}
+
+.calendar-day.today .calendar-date {
+  background: var(--green);
+  color: #fff;
+}
+
+.calendar-date {
+  width: 22px;
+  height: 22px;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  font-weight: 850;
+  flex-shrink: 0;
+}
+
+.calendar-shifts {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.calendar-chip {
+  width: 100%;
+  min-height: 18px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  background: var(--job-bg, var(--mint));
+  color: var(--job-text, var(--green-dark));
+  font-size: 10px;
+  font-weight: 850;
+  line-height: 1.2;
+  text-align: left;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.calendar-more {
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 800;
+  padding-left: 3px;
+}
+
+.selected-day-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 14px 0 8px;
+  padding-top: 12px;
+  border-top: 1px solid var(--line);
+}
+
+.selected-day-title {
+  font-size: 14px;
+  font-weight: 900;
+}
+
+.selected-day-list,
+.job-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shift-item,
+.job-item {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  padding: 12px;
+}
+
+.shift-main,
+.job-main {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.shift-title,
+.job-title {
+  font-size: 15px;
+  font-weight: 850;
+  min-width: 0;
+}
+
+.job-title-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.job-dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: var(--job-color, var(--green));
+  flex-shrink: 0;
+}
+
+.shift-meta,
+.job-meta {
+  margin-top: 4px;
+  font-size: 12px;
+  color: var(--muted);
+  line-height: 1.45;
+}
+
+.shift-pay {
+  text-align: right;
+  white-space: nowrap;
+  color: var(--green-dark);
+  font-weight: 900;
+  font-size: 15px;
+  font-variant-numeric: tabular-nums;
+}
+
+.shift-note {
+  margin-top: 8px;
+  padding: 8px 9px;
+  border-radius: 7px;
+  background: #f7f9f7;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.45;
+}
+
+.item-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.item-actions button {
+  min-height: 34px;
+  padding: 7px 10px;
+  font-size: 13px;
+}
+
+.empty {
+  padding: 22px 14px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.report-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.report-table th,
+.report-table td {
+  padding: 9px 6px;
+  border-bottom: 1px solid #edf2ee;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.report-table th:first-child,
+.report-table td:first-child {
+  text-align: left;
+}
+
+.report-table th {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.report-table td {
+  font-variant-numeric: tabular-nums;
+}
+
+.nav {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  background: #fff;
+  border-top: 1px solid var(--line);
+  padding: 6px 8px max(8px, env(safe-area-inset-bottom));
+  gap: 4px;
+}
+
+.nav-btn {
+  height: 50px;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 750;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+}
+
+.nav-symbol {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 900;
+}
+
+.nav-btn.active {
+  color: var(--green-dark);
+  background: var(--mint);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(82px + env(safe-area-inset-bottom));
+  transform: translateX(-50%) translateY(10px);
+  background: rgba(21, 35, 28, .92);
+  color: #fff;
+  padding: 9px 13px;
+  border-radius: 8px;
+  font-size: 13px;
+  opacity: 0;
+  pointer-events: none;
+  transition: .2s ease;
+  z-index: 20;
+}
+
+.toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 30;
+  display: none;
+  align-items: flex-end;
+  background: rgba(0, 0, 0, .36);
+}
+
+.modal.open {
+  display: flex;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  max-height: 88dvh;
+  overflow-y: auto;
+  background: #fff;
+  border-radius: 12px 12px 0 0;
+  padding: 16px 14px calc(18px + env(safe-area-inset-bottom));
+}
+
+.sheet-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.sheet-title {
+  font-size: 17px;
+  font-weight: 900;
+}
+
+.close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  background: #f1f4f2;
+  color: var(--text);
+  font-size: 20px;
+}
+
+.month-picker-head {
+  display: grid;
+  grid-template-columns: 34px 1fr 34px;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+
+.month-picker-year {
+  text-align: center;
+  color: var(--green-dark);
+  font-size: 20px;
+  font-weight: 900;
+}
+
+.month-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 8px;
+}
+
+.month-option {
+  min-height: 44px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--text);
+  font-weight: 850;
+}
+
+.month-option.active {
+  background: var(--green);
+  border-color: var(--green);
+  color: #fff;
+}
+
+@media (max-width: 360px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .job-date-row,
+  .time-row {
+    grid-template-columns: 1fr;
+  }
+
+  .month-switch {
+    gap: 3px;
+  }
+
+  .month-label {
+    min-width: 76px;
+  }
+}
+
+</style>
+</head>
+<body>
+<div class="app">
+  <header class="topbar">
+    <div class="topbar-main">
+      <div class="brand">
+        <div class="brand-title">打工薪水</div>
+        <div class="brand-sub">班表、工時、薪水</div>
+        <div class="sync-row">
+          <div class="sync-pill" id="syncStatus"><span class="sync-dot"></span><span id="syncText">本機資料</span></div>
+          <button class="sync-btn" id="manualSyncBtn" type="button">同步</button>
+        </div>
+      </div>
+      <div class="month-switch" aria-label="切換月份">
+        <button class="icon-btn" id="prevMonth" aria-label="上個月">‹</button>
+        <button class="month-label" id="monthLabel" aria-label="選擇月份"></button>
+        <button class="icon-btn" id="nextMonth" aria-label="下個月">›</button>
+      </div>
+    </div>
+  </header>
+
+  <main class="content">
+    <section class="summary-grid" aria-label="本月摘要">
+      <div class="summary-card">
+        <div class="summary-label">本月薪水</div>
+        <div class="summary-value" id="summaryPay">$0</div>
+        <div class="summary-note">含加給扣款</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">本月工時</div>
+        <div class="summary-value" id="summaryHours">0h</div>
+        <div class="summary-note" id="summaryShiftCount">0 筆班表</div>
+      </div>
+      <div class="summary-card">
+        <div class="summary-label">平均時薪</div>
+        <div class="summary-value" id="summaryAvg">$0</div>
+        <div class="summary-note">含加給扣款</div>
+      </div>
+    </section>
+
+    <section class="view active" id="viewAdd">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">新增班表</div>
+            <div class="card-sub">工作、時間、加扣款</div>
+          </div>
+        </div>
+
+        <form id="shiftForm">
+          <input type="hidden" id="editingShiftId">
+          <div class="form-grid">
+            <div class="job-date-row">
+              <div class="form-group">
+                <label class="label" for="shiftJob">工作</label>
+                <div class="select-wrap">
+                  <select class="field" id="shiftJob" required></select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="label" for="shiftDate">日期</label>
+                <input class="field" type="date" id="shiftDate" required>
+              </div>
+            </div>
+            <div class="time-row">
+              <div class="form-group">
+                <label class="label" for="startTime">上班</label>
+                <input class="time-hidden" type="hidden" id="startTime">
+                <div class="time-control" aria-label="上班時間">
+                  <div class="select-wrap">
+                    <select class="field" id="startHour" aria-label="上班小時" required></select>
+                  </div>
+                  <div class="select-wrap">
+                    <select class="field" id="startMinute" aria-label="上班分鐘" required></select>
+                  </div>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="label" for="endTime">下班</label>
+                <input class="time-hidden" type="hidden" id="endTime">
+                <div class="time-control" aria-label="下班時間">
+                  <div class="select-wrap">
+                    <select class="field" id="endHour" aria-label="下班小時" required></select>
+                  </div>
+                  <div class="select-wrap">
+                    <select class="field" id="endMinute" aria-label="下班分鐘" required></select>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="form-group">
+              <label class="label" for="shiftBonus">加給 / 小費</label>
+              <input class="field" type="number" id="shiftBonus" min="0" step="1" inputmode="decimal" placeholder="0">
+            </div>
+            <div class="form-group">
+              <label class="label" for="shiftDeduction">扣款</label>
+              <input class="field" type="number" id="shiftDeduction" min="0" step="1" inputmode="decimal" placeholder="0">
+            </div>
+            <div class="form-group full">
+              <label class="label" for="shiftNote">備註</label>
+              <textarea class="field" id="shiftNote" placeholder="例如：代班、颱風加給、主管提醒"></textarea>
+            </div>
+          </div>
+
+          <div class="row-actions">
+            <button type="button" class="secondary-btn" id="resetShiftBtn">清空</button>
+            <button type="submit" class="primary-btn" id="saveShiftBtn">儲存班表</button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <section class="view" id="viewShifts">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">班表日曆</div>
+            <div class="card-sub">點班表可修改，明細可複製</div>
+          </div>
+        </div>
+        <div class="calendar-weekdays" aria-hidden="true">
+          <div class="calendar-weekday">日</div>
+          <div class="calendar-weekday">一</div>
+          <div class="calendar-weekday">二</div>
+          <div class="calendar-weekday">三</div>
+          <div class="calendar-weekday">四</div>
+          <div class="calendar-weekday">五</div>
+          <div class="calendar-weekday">六</div>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="selected-day-head">
+          <div class="selected-day-title" id="selectedDayTitle"></div>
+        </div>
+        <div class="selected-day-list" id="selectedDayList"></div>
+      </div>
+    </section>
+
+    <section class="view" id="viewReport">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">月報</div>
+            <div class="card-sub">依工作彙總</div>
+          </div>
+        </div>
+        <table class="report-table">
+          <thead>
+            <tr>
+              <th>工作</th>
+              <th>班數</th>
+              <th>工時</th>
+              <th>薪水</th>
+            </tr>
+          </thead>
+          <tbody id="reportBody"></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="view" id="viewJobs">
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">工作設定</div>
+            <div class="card-sub">工作名稱、時薪、顏色</div>
+          </div>
+          <button class="secondary-btn" id="openJobModalBtn">新增</button>
+        </div>
+        <div class="job-list" id="jobList"></div>
+      </div>
+
+      <div class="card">
+        <div class="card-head">
+          <div>
+            <div class="card-title">資料備份</div>
+            <div class="card-sub">JSON 備份</div>
+          </div>
+        </div>
+        <div class="row-actions">
+          <button class="secondary-btn" id="exportBtn">匯出</button>
+          <button class="danger-btn" id="clearAllBtn">清除全部</button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <nav class="nav" aria-label="主要功能">
+    <button class="nav-btn active" data-view="Add">
+      <span class="nav-symbol">＋</span>
+      <span>新增</span>
+    </button>
+    <button class="nav-btn" data-view="Shifts">
+      <span class="nav-symbol">▦</span>
+      <span>班表</span>
+    </button>
+    <button class="nav-btn" data-view="Report">
+      <span class="nav-symbol">≡</span>
+      <span>月報</span>
+    </button>
+    <button class="nav-btn" data-view="Jobs">
+      <span class="nav-symbol">⚙</span>
+      <span>設定</span>
+    </button>
+  </nav>
+</div>
+
+<div class="modal" id="editShiftModal" aria-hidden="true">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="sheet-title" id="editShiftModalTitle">修改班表</div>
+      <button class="close-btn" id="closeEditShiftModalBtn" aria-label="關閉">×</button>
+    </div>
+    <form id="editShiftForm">
+      <input type="hidden" id="editShiftId">
+      <div class="form-grid">
+        <div class="job-date-row">
+          <div class="form-group">
+            <label class="label" for="editShiftJob">工作</label>
+            <div class="select-wrap">
+              <select class="field" id="editShiftJob" required></select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="label" for="editShiftDate">日期</label>
+            <input class="field" type="date" id="editShiftDate" required>
+          </div>
+        </div>
+        <div class="time-row">
+          <div class="form-group">
+            <label class="label" for="editStartTime">上班</label>
+            <input class="time-hidden" type="hidden" id="editStartTime">
+            <div class="time-control" aria-label="修改上班時間">
+              <div class="select-wrap">
+                <select class="field" id="editStartHour" aria-label="修改上班小時" required></select>
+              </div>
+              <div class="select-wrap">
+                <select class="field" id="editStartMinute" aria-label="修改上班分鐘" required></select>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="label" for="editEndTime">下班</label>
+            <input class="time-hidden" type="hidden" id="editEndTime">
+            <div class="time-control" aria-label="修改下班時間">
+              <div class="select-wrap">
+                <select class="field" id="editEndHour" aria-label="修改下班小時" required></select>
+              </div>
+              <div class="select-wrap">
+                <select class="field" id="editEndMinute" aria-label="修改下班分鐘" required></select>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="form-group">
+          <label class="label" for="editShiftBonus">加給 / 小費</label>
+          <input class="field" type="number" id="editShiftBonus" min="0" step="1" inputmode="decimal" placeholder="0">
+        </div>
+        <div class="form-group">
+          <label class="label" for="editShiftDeduction">扣款</label>
+          <input class="field" type="number" id="editShiftDeduction" min="0" step="1" inputmode="decimal" placeholder="0">
+        </div>
+        <div class="form-group full">
+          <label class="label" for="editShiftNote">備註</label>
+          <textarea class="field" id="editShiftNote" placeholder="例如：代班、颱風加給、主管提醒"></textarea>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button type="button" class="secondary-btn" id="cancelEditShiftBtn">取消</button>
+        <button type="submit" class="primary-btn" id="saveEditShiftBtn">儲存修改</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="jobModal" aria-hidden="true">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="sheet-title" id="jobModalTitle">新增工作</div>
+      <button class="close-btn" id="closeJobModalBtn" aria-label="關閉">×</button>
+    </div>
+    <form id="jobForm">
+      <input type="hidden" id="editingJobId">
+      <div class="form-group">
+        <label class="label" for="jobName">工作名稱</label>
+        <input class="field" id="jobName" required placeholder="例如：咖啡廳、補習班、餐廳外場">
+      </div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label class="label" for="jobRate">時薪</label>
+          <input class="field" type="number" id="jobRate" min="0" step="1" inputmode="decimal" required placeholder="190">
+        </div>
+        <div class="form-group full">
+          <label class="label" for="jobNote">備註</label>
+          <textarea class="field" id="jobNote" placeholder="例如：週末時薪不同、國定假日要另外算"></textarea>
+        </div>
+      </div>
+      <div class="row-actions">
+        <button type="button" class="secondary-btn" id="cancelJobBtn">取消</button>
+        <button type="submit" class="primary-btn">儲存工作</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="monthModal" aria-hidden="true">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="sheet-title">選擇月份</div>
+      <button class="close-btn" id="closeMonthModalBtn" aria-label="關閉">×</button>
+    </div>
+    <div class="month-picker-head">
+      <button class="icon-btn" id="prevYear" aria-label="上一年">‹</button>
+      <div class="month-picker-year" id="monthPickerYear"></div>
+      <button class="icon-btn" id="nextYear" aria-label="下一年">›</button>
+    </div>
+    <div class="month-grid" id="monthGrid"></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script>
+const STORAGE_KEY = "part_time_pay_app_v1";
+const CLOUD_DOC = "part-time-pay-main";
+const FIREBASE_APP_NAME = "partTimePay";
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyB1b6oTHXkYj1TfZJvwKqfD0Lcim49Bhjk",
+  authDomain: "expense-c7e01.firebaseapp.com",
+  projectId: "expense-c7e01",
+  storageBucket: "expense-c7e01.firebasestorage.app",
+  messagingSenderId: "435599371028",
+  appId: "1:435599371028:web:76d55af7b63de277d03001"
+};
+const JOB_COLORS = [
+  { bg: "#dff7eb", text: "#08724c", dot: "#0f8f5f" },
+  { bg: "#e6f0ff", text: "#1f5fbf", dot: "#3b82f6" },
+  { bg: "#fff1d6", text: "#9a5a00", dot: "#f59e0b" },
+  { bg: "#f4e8ff", text: "#7a35b0", dot: "#a855f7" },
+  { bg: "#ffe5e8", text: "#b42338", dot: "#f43f5e" },
+  { bg: "#e3f6f8", text: "#0f6b78", dot: "#06b6d4" }
+];
+
+const els = {
+  monthLabel: document.getElementById("monthLabel"),
+  prevMonth: document.getElementById("prevMonth"),
+  nextMonth: document.getElementById("nextMonth"),
+  syncStatus: document.getElementById("syncStatus"),
+  syncText: document.getElementById("syncText"),
+  manualSyncBtn: document.getElementById("manualSyncBtn"),
+  summaryPay: document.getElementById("summaryPay"),
+  summaryHours: document.getElementById("summaryHours"),
+  summaryShiftCount: document.getElementById("summaryShiftCount"),
+  summaryAvg: document.getElementById("summaryAvg"),
+  shiftForm: document.getElementById("shiftForm"),
+  editingShiftId: document.getElementById("editingShiftId"),
+  shiftJob: document.getElementById("shiftJob"),
+  shiftDate: document.getElementById("shiftDate"),
+  startTime: document.getElementById("startTime"),
+  startHour: document.getElementById("startHour"),
+  startMinute: document.getElementById("startMinute"),
+  endTime: document.getElementById("endTime"),
+  endHour: document.getElementById("endHour"),
+  endMinute: document.getElementById("endMinute"),
+  shiftBonus: document.getElementById("shiftBonus"),
+  shiftDeduction: document.getElementById("shiftDeduction"),
+  shiftNote: document.getElementById("shiftNote"),
+  resetShiftBtn: document.getElementById("resetShiftBtn"),
+  saveShiftBtn: document.getElementById("saveShiftBtn"),
+  calendarGrid: document.getElementById("calendarGrid"),
+  selectedDayTitle: document.getElementById("selectedDayTitle"),
+  selectedDayList: document.getElementById("selectedDayList"),
+  editShiftModal: document.getElementById("editShiftModal"),
+  editShiftModalTitle: document.getElementById("editShiftModalTitle"),
+  closeEditShiftModalBtn: document.getElementById("closeEditShiftModalBtn"),
+  cancelEditShiftBtn: document.getElementById("cancelEditShiftBtn"),
+  saveEditShiftBtn: document.getElementById("saveEditShiftBtn"),
+  editShiftForm: document.getElementById("editShiftForm"),
+  editShiftId: document.getElementById("editShiftId"),
+  editShiftJob: document.getElementById("editShiftJob"),
+  editShiftDate: document.getElementById("editShiftDate"),
+  editStartTime: document.getElementById("editStartTime"),
+  editStartHour: document.getElementById("editStartHour"),
+  editStartMinute: document.getElementById("editStartMinute"),
+  editEndTime: document.getElementById("editEndTime"),
+  editEndHour: document.getElementById("editEndHour"),
+  editEndMinute: document.getElementById("editEndMinute"),
+  editShiftBonus: document.getElementById("editShiftBonus"),
+  editShiftDeduction: document.getElementById("editShiftDeduction"),
+  editShiftNote: document.getElementById("editShiftNote"),
+  reportBody: document.getElementById("reportBody"),
+  jobList: document.getElementById("jobList"),
+  jobModal: document.getElementById("jobModal"),
+  openJobModalBtn: document.getElementById("openJobModalBtn"),
+  closeJobModalBtn: document.getElementById("closeJobModalBtn"),
+  cancelJobBtn: document.getElementById("cancelJobBtn"),
+  jobModalTitle: document.getElementById("jobModalTitle"),
+  jobForm: document.getElementById("jobForm"),
+  editingJobId: document.getElementById("editingJobId"),
+  jobName: document.getElementById("jobName"),
+  jobRate: document.getElementById("jobRate"),
+  jobNote: document.getElementById("jobNote"),
+  exportBtn: document.getElementById("exportBtn"),
+  clearAllBtn: document.getElementById("clearAllBtn"),
+  monthModal: document.getElementById("monthModal"),
+  closeMonthModalBtn: document.getElementById("closeMonthModalBtn"),
+  prevYear: document.getElementById("prevYear"),
+  nextYear: document.getElementById("nextYear"),
+  monthPickerYear: document.getElementById("monthPickerYear"),
+  monthGrid: document.getElementById("monthGrid"),
+  toast: document.getElementById("toast")
+};
+
+let state = loadState();
+let visibleMonth = monthKey(new Date());
+let pickerYear = Number(visibleMonth.slice(0, 4));
+let selectedDate = todayStr();
+let fbApp = null;
+let auth = null;
+let db = null;
+let fbUser = null;
+let syncTimer = null;
+let isCloudApplying = false;
+
+function loadState() {
+  let loaded;
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) loaded = JSON.parse(raw);
+  } catch (err) {
+    console.warn(err);
+  }
+  const fallback = {
+    jobs: [
+      {
+        id: makeId(),
+        name: "咖啡廳打工",
+        hourlyRate: 190,
+        colorIndex: 0,
+        note: ""
+      }
+    ],
+    shifts: []
+  };
+  return normalizeState(loaded || fallback);
+}
+
+function saveState() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  if (!isCloudApplying) scheduleSyncToCloud();
+}
+
+function normalizeState(input) {
+  const normalized = {
+    jobs: Array.isArray(input.jobs) ? input.jobs : [],
+    shifts: Array.isArray(input.shifts) ? input.shifts : []
+  };
+  normalized.jobs = normalized.jobs.map((job, index) => ({
+    ...job,
+    colorIndex: Number.isFinite(Number(job.colorIndex)) ? Number(job.colorIndex) : index % JOB_COLORS.length
+  }));
+  return normalized;
+}
+
+function jobColor(jobId) {
+  const job = state.jobs.find(item => item.id === jobId);
+  const index = job ? Number(job.colorIndex || 0) : 0;
+  return JOB_COLORS[((index % JOB_COLORS.length) + JOB_COLORS.length) % JOB_COLORS.length];
+}
+
+function setSyncStatus(status, text) {
+  els.syncStatus.className = `sync-pill ${status || ""}`.trim();
+  els.syncText.textContent = text;
+}
+
+function cloudDocRef() {
+  if (!db || !fbUser) return null;
+  return db.collection("users").doc(fbUser.uid).collection("data").doc(CLOUD_DOC);
+}
+
+function cloudPayload() {
+  return {
+    schemaVersion: 1,
+    updatedAt: Date.now(),
+    jobs: state.jobs,
+    shifts: state.shifts
+  };
+}
+
+function applyCloudPayload(data) {
+  isCloudApplying = true;
+  state = normalizeState(data || {});
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+  isCloudApplying = false;
+  ensureSelectedDateInMonth();
+  render();
+}
+
+function scheduleSyncToCloud() {
+  if (!fbUser || !db) return;
+  clearTimeout(syncTimer);
+  setSyncStatus("syncing", "同步中");
+  syncTimer = setTimeout(syncToCloud, 1200);
+}
+
+async function syncToCloud() {
+  const ref = cloudDocRef();
+  if (!ref) return;
+  try {
+    setSyncStatus("syncing", "同步中");
+    await ref.set(cloudPayload());
+    setSyncStatus("ok", "已同步");
+  } catch (err) {
+    console.error(err);
+    setSyncStatus("error", "同步失敗");
+  }
+}
+
+async function syncFromCloud() {
+  const ref = cloudDocRef();
+  if (!ref) return;
+  try {
+    setSyncStatus("syncing", "同步中");
+    const doc = await ref.get();
+    if (doc.exists) {
+      applyCloudPayload(doc.data());
+      setSyncStatus("ok", "已同步");
+    } else {
+      await syncToCloud();
+    }
+  } catch (err) {
+    console.error(err);
+    setSyncStatus("error", "同步失敗");
+  }
+}
+
+async function manualSync() {
+  if (!fbUser || !db) {
+    setSyncStatus("error", "尚未連線");
+    return;
+  }
+  await syncFromCloud();
+  await syncToCloud();
+  toast("同步完成");
+}
+
+function initCloud() {
+  if (!window.firebase) {
+    setSyncStatus("error", "雲端未載入");
+    return;
+  }
+  try {
+    fbApp = firebase.apps.find(app => app.name === FIREBASE_APP_NAME) || firebase.initializeApp(FIREBASE_CONFIG, FIREBASE_APP_NAME);
+    auth = firebase.auth(fbApp);
+    db = firebase.firestore(fbApp);
+    auth.setPersistence(firebase.auth.Auth.Persistence.LOCAL).catch(() => {});
+    setSyncStatus("syncing", "連線中");
+    auth.onAuthStateChanged(async user => {
+      try {
+        if (!user) {
+          await auth.signInAnonymously();
+          return;
+        }
+        fbUser = user;
+        await syncFromCloud();
+      } catch (err) {
+        console.error(err);
+        setSyncStatus("error", "登入失敗");
+      }
+    });
+  } catch (err) {
+    console.error(err);
+    setSyncStatus("error", "雲端失敗");
+  }
+}
+
+function makeId() {
+  return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+}
+
+function todayStr() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+function localDateStr(date) {
+  const d = new Date(date);
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+function monthKey(date) {
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function money(value) {
+  return "$" + Math.round(Number(value || 0)).toLocaleString("zh-Hant-TW");
+}
+
+function hoursText(value) {
+  const rounded = Math.round(Number(value || 0) * 10) / 10;
+  return `${rounded.toLocaleString("zh-Hant-TW")}h`;
+}
+
+function populateTimeControls(prefix) {
+  const hour = els[`${prefix}Hour`];
+  const minute = els[`${prefix}Minute`];
+  hour.innerHTML = `<option value="">時</option>` + Array.from({ length: 24 }, (_, index) => {
+    const value = String(index).padStart(2, "0");
+    return `<option value="${value}">${value}</option>`;
+  }).join("");
+  minute.innerHTML = `<option value="">分</option>` + Array.from({ length: 60 }, (_, index) => {
+    const value = String(index).padStart(2, "0");
+    return `<option value="${value}">${value}</option>`;
+  }).join("");
+}
+
+function setTimeControls(prefix, time) {
+  const hour = els[`${prefix}Hour`];
+  const minute = els[`${prefix}Minute`];
+  if (!time || !time.includes(":")) {
+    hour.value = "";
+    minute.value = "";
+    els[`${prefix}Time`].value = "";
+    return;
+  }
+  const [hour24, minuteValue] = time.split(":").map(Number);
+  hour.value = String(hour24 || 0).padStart(2, "0");
+  minute.value = String(minuteValue || 0).padStart(2, "0");
+  syncTimeValue(prefix);
+}
+
+function syncTimeValue(prefix) {
+  const hour = els[`${prefix}Hour`].value;
+  const minute = els[`${prefix}Minute`].value;
+  if (!hour || !minute) {
+    els[`${prefix}Time`].value = "";
+    return;
+  }
+  els[`${prefix}Time`].value = `${hour}:${minute}`;
+}
+
+function displayTime(time) {
+  if (!time || !time.includes(":")) return "";
+  const [hour, minute] = time.split(":").map(Number);
+  return `${String(hour || 0).padStart(2, "0")}:${String(minute || 0).padStart(2, "0")}`;
+}
+
+function timeMinutes(time) {
+  if (!time || !time.includes(":")) return 0;
+  const [h, m] = time.split(":").map(Number);
+  return h * 60 + m;
+}
+
+function calcShift(input) {
+  const start = timeMinutes(input.startTime);
+  let end = timeMinutes(input.endTime);
+  if (!input.startTime || !input.endTime) return { hours: 0, pay: 0 };
+  if (end <= start) end += 24 * 60;
+  const grossMinutes = Math.max(0, end - start);
+  const hours = grossMinutes / 60;
+  const basePay = hours * Number(input.hourlyRate || 0);
+  const pay = basePay + Number(input.bonus || 0) - Number(input.deduction || 0);
+  return { hours, pay: Math.max(0, pay) };
+}
+
+function currentJob() {
+  return state.jobs.find(job => job.id === els.shiftJob.value) || state.jobs[0];
+}
+
+function currentEditJob() {
+  return state.jobs.find(job => job.id === els.editShiftJob.value) || state.jobs[0];
+}
+
+function getMonthShifts() {
+  return state.shifts
+    .filter(shift => shift.date && shift.date.slice(0, 7) === visibleMonth)
+    .sort((a, b) => `${a.date} ${a.startTime}`.localeCompare(`${b.date} ${b.startTime}`));
+}
+
+function getDayShifts(dateStr) {
+  return state.shifts
+    .filter(shift => shift.date === dateStr)
+    .sort((a, b) => String(a.startTime || "").localeCompare(String(b.startTime || "")));
+}
+
+function ensureSelectedDateInMonth() {
+  if (selectedDate && selectedDate.slice(0, 7) === visibleMonth) return;
+  const today = todayStr();
+  selectedDate = today.slice(0, 7) === visibleMonth ? today : `${visibleMonth}-01`;
+}
+
+function render() {
+  renderMonth();
+  renderJobOptions();
+  renderSummary();
+  renderShifts();
+  renderReport();
+  renderJobs();
+}
+
+function renderMonth() {
+  const [year, month] = visibleMonth.split("-");
+  els.monthLabel.textContent = `${year} 年 ${Number(month)} 月`;
+  pickerYear = Number(year);
+  renderMonthPicker();
+}
+
+function renderMonthPicker() {
+  els.monthPickerYear.textContent = `${pickerYear} 年`;
+  const activeMonth = visibleMonth === `${pickerYear}-${visibleMonth.slice(5, 7)}`
+    ? Number(visibleMonth.slice(5, 7))
+    : null;
+  els.monthGrid.innerHTML = Array.from({ length: 12 }, (_, index) => {
+    const month = index + 1;
+    const active = month === activeMonth ? " active" : "";
+    return `<button class="month-option${active}" data-month="${month}">${month} 月</button>`;
+  }).join("");
+}
+
+function renderJobOptions() {
+  const selected = els.shiftJob.value;
+  els.shiftJob.innerHTML = "";
+  const editSelected = els.editShiftJob.value;
+  els.editShiftJob.innerHTML = "";
+  state.jobs.forEach(job => {
+    const option = document.createElement("option");
+    option.value = job.id;
+    option.textContent = `${job.name} / ${money(job.hourlyRate)}`;
+    els.shiftJob.appendChild(option);
+    els.editShiftJob.appendChild(option.cloneNode(true));
+  });
+  if (state.jobs.some(job => job.id === selected)) {
+    els.shiftJob.value = selected;
+  }
+  if (state.jobs.some(job => job.id === editSelected)) {
+    els.editShiftJob.value = editSelected;
+  }
+  if (!els.shiftJob.value && state.jobs[0]) {
+    els.shiftJob.value = state.jobs[0].id;
+  }
+  if (!els.editShiftJob.value && state.jobs[0]) {
+    els.editShiftJob.value = state.jobs[0].id;
+  }
+}
+
+function renderSummary() {
+  const shifts = getMonthShifts();
+  const total = shifts.reduce((acc, shift) => {
+    const calc = calcShift(shift);
+    acc.hours += calc.hours;
+    acc.pay += calc.pay;
+    return acc;
+  }, { hours: 0, pay: 0 });
+  const avg = total.hours > 0 ? total.pay / total.hours : 0;
+  els.summaryPay.textContent = money(total.pay);
+  els.summaryHours.textContent = hoursText(total.hours);
+  els.summaryShiftCount.textContent = `${shifts.length} 筆班表`;
+  els.summaryAvg.textContent = money(avg);
+}
+
+function renderShifts() {
+  ensureSelectedDateInMonth();
+  const [year, month] = visibleMonth.split("-").map(Number);
+  const firstDay = new Date(year, month - 1, 1);
+  const startOffset = firstDay.getDay();
+  const gridStart = new Date(year, month - 1, 1 - startOffset);
+  const shiftsByDate = getMonthShifts().reduce((map, shift) => {
+    if (!map.has(shift.date)) map.set(shift.date, []);
+    map.get(shift.date).push(shift);
+    return map;
+  }, new Map());
+  const today = todayStr();
+
+  els.calendarGrid.innerHTML = Array.from({ length: 42 }, (_, index) => {
+    const date = new Date(gridStart);
+    date.setDate(gridStart.getDate() + index);
+    const dateStr = localDateStr(date);
+    const inMonth = dateStr.slice(0, 7) === visibleMonth;
+    const dayShifts = shiftsByDate.get(dateStr) || [];
+    const classes = [
+      "calendar-day",
+      inMonth ? "" : "outside",
+      dateStr === selectedDate ? "selected" : "",
+      dateStr === today ? "today" : ""
+    ].filter(Boolean).join(" ");
+    const visibleShifts = dayShifts.slice(0, 3).map(shift => {
+      const time = displayTime(shift.startTime);
+      const color = jobColor(shift.jobId);
+      return `<button class="calendar-chip" style="--job-bg:${color.bg};--job-text:${color.text}" data-action="edit-shift" data-id="${shift.id}" title="${escapeHtml(shift.jobName)} ${time}">${time}</button>`;
+    }).join("");
+    const more = dayShifts.length > 3 ? `<div class="calendar-more">+${dayShifts.length - 3}</div>` : "";
+    return `
+      <div class="${classes}" data-action="select-day" data-date="${dateStr}">
+        <div class="calendar-date">${date.getDate()}</div>
+        <div class="calendar-shifts">${visibleShifts}${more}</div>
+      </div>
+    `;
+  }).join("");
+
+  renderSelectedDay();
+}
+
+function renderSelectedDay() {
+  const shifts = getDayShifts(selectedDate);
+  const weekday = weekdayText(selectedDate);
+  els.selectedDayTitle.textContent = `${selectedDate} ${weekday}`;
+  if (!shifts.length) {
+    els.selectedDayList.innerHTML = `<div class="empty">這天還沒有班表。</div>`;
+    return;
+  }
+
+  els.selectedDayList.innerHTML = shifts.map(shift => {
+    const calc = calcShift(shift);
+    const note = shift.note ? `<div class="shift-note">${escapeHtml(shift.note)}</div>` : "";
+    return `
+      <article class="shift-item">
+        <div class="shift-main">
+          <div>
+            <div class="shift-title">${escapeHtml(shift.jobName)}</div>
+            <div class="shift-meta">${displayTime(shift.startTime)} - ${displayTime(shift.endTime)}</div>
+            <div class="shift-meta">${hoursText(calc.hours)}｜時薪 ${money(shift.hourlyRate)}</div>
+          </div>
+          <div class="shift-pay">${money(calc.pay)}</div>
+        </div>
+        ${note}
+        <div class="item-actions">
+          <button class="secondary-btn" data-action="edit-shift" data-id="${shift.id}">修改</button>
+          <button class="secondary-btn" data-action="copy-shift" data-id="${shift.id}">複製</button>
+          <button class="danger-btn" data-action="delete-shift" data-id="${shift.id}">刪除</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function renderReport() {
+  const rows = new Map();
+  getMonthShifts().forEach(shift => {
+    const calc = calcShift(shift);
+    const row = rows.get(shift.jobName) || { name: shift.jobName, count: 0, hours: 0, pay: 0 };
+    row.count += 1;
+    row.hours += calc.hours;
+    row.pay += calc.pay;
+    rows.set(shift.jobName, row);
+  });
+
+  if (!rows.size) {
+    els.reportBody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:22px 8px;">這個月份還沒有資料</td></tr>`;
+    return;
+  }
+
+  els.reportBody.innerHTML = Array.from(rows.values())
+    .sort((a, b) => b.pay - a.pay)
+    .map(row => `
+      <tr>
+        <td>${escapeHtml(row.name)}</td>
+        <td>${row.count}</td>
+        <td>${hoursText(row.hours)}</td>
+        <td>${money(row.pay)}</td>
+      </tr>
+    `).join("");
+}
+
+function renderJobs() {
+  if (!state.jobs.length) {
+    els.jobList.innerHTML = `<div class="empty">還沒有工作設定。先新增一個工作，才能快速記班表。</div>`;
+    return;
+  }
+
+  els.jobList.innerHTML = state.jobs.map(job => {
+    const used = state.shifts.filter(shift => shift.jobId === job.id).length;
+    const color = jobColor(job.id);
+    const note = job.note ? `<div class="job-meta">${escapeHtml(job.note)}</div>` : "";
+    return `
+      <article class="job-item">
+        <div class="job-main">
+          <div>
+            <div class="job-title-row"><span class="job-dot" style="--job-color:${color.dot}"></span><div class="job-title">${escapeHtml(job.name)}</div></div>
+            <div class="job-meta">時薪 ${money(job.hourlyRate)}｜${used} 筆班表</div>
+            ${note}
+          </div>
+        </div>
+        <div class="item-actions">
+          <button class="secondary-btn" data-action="edit-job" data-id="${job.id}">修改</button>
+          <button class="danger-btn" data-action="delete-job" data-id="${job.id}">刪除</button>
+        </div>
+      </article>
+    `;
+  }).join("");
+}
+
+function syncShiftTimes() {
+  syncTimeValue("start");
+  syncTimeValue("end");
+}
+
+function syncEditShiftTimes() {
+  syncTimeValue("editStart");
+  syncTimeValue("editEnd");
+}
+
+function handleHourChange(prefix, syncFn = syncShiftTimes) {
+  if (els[`${prefix}Hour`].value && !els[`${prefix}Minute`].value) {
+    els[`${prefix}Minute`].value = "00";
+  }
+  syncFn();
+}
+
+function handleFormEnter(event, form) {
+  if (event.key !== "Enter" || event.isComposing) return;
+  if (event.target.tagName === "TEXTAREA") return;
+  event.preventDefault();
+  form.requestSubmit();
+}
+
+function handleShiftFormKeydown(event) {
+  handleFormEnter(event, els.shiftForm);
+}
+
+function handleEditShiftFormKeydown(event) {
+  handleFormEnter(event, els.editShiftForm);
+}
+
+function resetShiftForm(keepDate = true) {
+  const date = els.shiftDate.value || todayStr();
+  els.shiftForm.reset();
+  els.editingShiftId.value = "";
+  els.saveShiftBtn.textContent = "儲存班表";
+  els.shiftDate.value = keepDate ? date : todayStr();
+  setTimeControls("start", "");
+  setTimeControls("end", "");
+  if (state.jobs[0]) els.shiftJob.value = state.jobs[0].id;
+  syncShiftTimes();
+}
+
+function saveShift(event) {
+  event.preventDefault();
+  syncTimeValue("start");
+  syncTimeValue("end");
+  const job = currentJob();
+  if (!job) {
+    toast("請先新增工作");
+    openJobModal();
+    return;
+  }
+
+  const shift = {
+    id: els.editingShiftId.value || makeId(),
+    jobId: job.id,
+    jobName: job.name,
+    hourlyRate: Number(job.hourlyRate || 0),
+    date: els.shiftDate.value,
+    startTime: els.startTime.value,
+    endTime: els.endTime.value,
+    bonus: Number(els.shiftBonus.value || 0),
+    deduction: Number(els.shiftDeduction.value || 0),
+    note: els.shiftNote.value.trim()
+  };
+
+  if (!shift.date || !shift.startTime || !shift.endTime) {
+    toast("請填日期和上下班時間");
+    return;
+  }
+
+  const index = state.shifts.findIndex(item => item.id === shift.id);
+  if (index >= 0) state.shifts[index] = shift;
+  else state.shifts.push(shift);
+
+  visibleMonth = shift.date.slice(0, 7);
+  selectedDate = shift.date;
+  saveState();
+  resetShiftForm(true);
+  render();
+  toast(index >= 0 ? "班表已更新" : "班表已儲存");
+}
+
+function editShift(id) {
+  const shift = state.shifts.find(item => item.id === id);
+  if (!shift) return;
+  visibleMonth = shift.date.slice(0, 7);
+  selectedDate = shift.date;
+  els.editShiftModalTitle.textContent = "修改班表";
+  els.saveEditShiftBtn.textContent = "儲存修改";
+  els.editShiftId.value = shift.id;
+  els.editShiftJob.value = state.jobs.some(job => job.id === shift.jobId) ? shift.jobId : (state.jobs[0] && state.jobs[0].id);
+  els.editShiftDate.value = shift.date;
+  setTimeControls("editStart", shift.startTime);
+  setTimeControls("editEnd", shift.endTime);
+  els.editShiftBonus.value = shift.bonus || "";
+  els.editShiftDeduction.value = shift.deduction || "";
+  els.editShiftNote.value = shift.note || "";
+  syncEditShiftTimes();
+  render();
+  openEditShiftModal();
+}
+
+function openEditShiftModal() {
+  els.editShiftModal.classList.add("open");
+  els.editShiftModal.setAttribute("aria-hidden", "false");
+}
+
+function copyShift(id) {
+  const shift = state.shifts.find(item => item.id === id);
+  if (!shift) return;
+  selectedDate = shift.date;
+  visibleMonth = shift.date.slice(0, 7);
+  els.editShiftId.value = "";
+  els.editShiftModalTitle.textContent = "複製班表";
+  els.saveEditShiftBtn.textContent = "儲存班表";
+  els.editShiftJob.value = state.jobs.some(job => job.id === shift.jobId) ? shift.jobId : (state.jobs[0] && state.jobs[0].id);
+  els.editShiftDate.value = shift.date;
+  setTimeControls("editStart", shift.startTime);
+  setTimeControls("editEnd", shift.endTime);
+  els.editShiftBonus.value = shift.bonus || "";
+  els.editShiftDeduction.value = shift.deduction || "";
+  els.editShiftNote.value = shift.note || "";
+  syncEditShiftTimes();
+  render();
+  openEditShiftModal();
+}
+
+function closeEditShiftModal() {
+  els.editShiftModal.classList.remove("open");
+  els.editShiftModal.setAttribute("aria-hidden", "true");
+}
+
+function saveEditShift(event) {
+  event.preventDefault();
+  syncTimeValue("editStart");
+  syncTimeValue("editEnd");
+  const job = currentEditJob();
+  const index = state.shifts.findIndex(item => item.id === els.editShiftId.value);
+  const isEditing = !!els.editShiftId.value;
+  if (!job) {
+    toast("請先新增工作");
+    return;
+  }
+  if (isEditing && index < 0) {
+    toast("找不到這筆班表");
+    closeEditShiftModal();
+    return;
+  }
+
+  const shift = {
+    id: els.editShiftId.value || makeId(),
+    jobId: job.id,
+    jobName: job.name,
+    hourlyRate: Number(job.hourlyRate || 0),
+    date: els.editShiftDate.value,
+    startTime: els.editStartTime.value,
+    endTime: els.editEndTime.value,
+    bonus: Number(els.editShiftBonus.value || 0),
+    deduction: Number(els.editShiftDeduction.value || 0),
+    note: els.editShiftNote.value.trim()
+  };
+
+  if (!shift.date || !shift.startTime || !shift.endTime) {
+    toast("請填日期和上下班時間");
+    return;
+  }
+
+  if (isEditing) state.shifts[index] = shift;
+  else state.shifts.push(shift);
+  visibleMonth = shift.date.slice(0, 7);
+  selectedDate = shift.date;
+  saveState();
+  closeEditShiftModal();
+  render();
+  toast(isEditing ? "班表已更新" : "班表已儲存");
+}
+
+function deleteShift(id) {
+  const shift = state.shifts.find(item => item.id === id);
+  if (!shift) return;
+  state.shifts = state.shifts.filter(item => item.id !== id);
+  saveState();
+  render();
+  toast("班表已刪除");
+}
+
+function openJobModal(job) {
+  els.jobForm.reset();
+  els.editingJobId.value = job ? job.id : "";
+  els.jobModalTitle.textContent = job ? "修改工作" : "新增工作";
+  if (job) {
+    els.jobName.value = job.name;
+    els.jobRate.value = job.hourlyRate;
+    els.jobNote.value = job.note || "";
+  }
+  els.jobModal.classList.add("open");
+  els.jobModal.setAttribute("aria-hidden", "false");
+  setTimeout(() => els.jobName.focus(), 80);
+}
+
+function closeJobModal() {
+  els.jobModal.classList.remove("open");
+  els.jobModal.setAttribute("aria-hidden", "true");
+}
+
+function saveJob(event) {
+  event.preventDefault();
+  const existingJob = state.jobs.find(item => item.id === els.editingJobId.value);
+  const job = {
+    id: els.editingJobId.value || makeId(),
+    name: els.jobName.value.trim(),
+    hourlyRate: Number(els.jobRate.value || 0),
+    colorIndex: existingJob ? existingJob.colorIndex : state.jobs.length % JOB_COLORS.length,
+    note: els.jobNote.value.trim()
+  };
+
+  if (!job.name || job.hourlyRate <= 0) {
+    toast("請填工作名稱和時薪");
+    return;
+  }
+
+  const index = state.jobs.findIndex(item => item.id === job.id);
+  if (index >= 0) state.jobs[index] = job;
+  else state.jobs.push(job);
+  saveState();
+  closeJobModal();
+  render();
+  els.shiftJob.value = job.id;
+  toast(index >= 0 ? "工作已更新" : "工作已新增");
+}
+
+function editJob(id) {
+  const job = state.jobs.find(item => item.id === id);
+  if (job) openJobModal(job);
+}
+
+function deleteJob(id) {
+  const job = state.jobs.find(item => item.id === id);
+  if (!job) return;
+  const used = state.shifts.some(shift => shift.jobId === id);
+  if (used) {
+    toast("已有班表使用這個工作，先保留避免舊資料對不上");
+    return;
+  }
+  if (!confirm(`刪除工作「${job.name}」？`)) return;
+  state.jobs = state.jobs.filter(item => item.id !== id);
+  saveState();
+  render();
+  toast("工作已刪除");
+}
+
+function exportData() {
+  const text = JSON.stringify(state, null, 2);
+  navigator.clipboard.writeText(text)
+    .then(() => toast("備份資料已複製"))
+    .catch(() => {
+      prompt("複製這份備份資料", text);
+    });
+}
+
+function clearAll() {
+  if (!confirm("確定清除所有工作和班表？這個動作不能復原。")) return;
+  state = { jobs: [], shifts: [] };
+  saveState();
+  render();
+  toast("資料已清除");
+}
+
+function weekdayText(dateStr) {
+  const day = new Date(dateStr + "T00:00:00").getDay();
+  return ["日", "一", "二", "三", "四", "五", "六"][day];
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function toast(message) {
+  els.toast.textContent = message;
+  els.toast.classList.add("show");
+  clearTimeout(toast.timer);
+  toast.timer = setTimeout(() => els.toast.classList.remove("show"), 1800);
+}
+
+function showView(name) {
+  document.querySelectorAll(".view").forEach(view => view.classList.remove("active"));
+  document.getElementById(`view${name}`).classList.add("active");
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.classList.toggle("active", btn.dataset.view === name);
+  });
+}
+
+function shiftMonth(offset) {
+  const [year, month] = visibleMonth.split("-").map(Number);
+  const date = new Date(year, month - 1 + offset, 1);
+  visibleMonth = monthKey(date);
+  ensureSelectedDateInMonth();
+  render();
+}
+
+function openMonthModal() {
+  pickerYear = Number(visibleMonth.slice(0, 4));
+  renderMonthPicker();
+  els.monthModal.classList.add("open");
+  els.monthModal.setAttribute("aria-hidden", "false");
+}
+
+function closeMonthModal() {
+  els.monthModal.classList.remove("open");
+  els.monthModal.setAttribute("aria-hidden", "true");
+}
+
+function shiftPickerYear(offset) {
+  pickerYear += offset;
+  renderMonthPicker();
+}
+
+function selectPickerMonth(month) {
+  visibleMonth = `${pickerYear}-${String(month).padStart(2, "0")}`;
+  closeMonthModal();
+  render();
+}
+
+function bindEvents() {
+  els.prevMonth.addEventListener("click", () => shiftMonth(-1));
+  els.nextMonth.addEventListener("click", () => shiftMonth(1));
+  els.monthLabel.addEventListener("click", openMonthModal);
+  els.closeMonthModalBtn.addEventListener("click", closeMonthModal);
+  els.prevYear.addEventListener("click", () => shiftPickerYear(-1));
+  els.nextYear.addEventListener("click", () => shiftPickerYear(1));
+  els.monthModal.addEventListener("click", event => {
+    if (event.target === els.monthModal) closeMonthModal();
+  });
+  els.monthGrid.addEventListener("click", event => {
+    const button = event.target.closest("button[data-month]");
+    if (!button) return;
+    selectPickerMonth(Number(button.dataset.month));
+  });
+  document.querySelectorAll(".nav-btn").forEach(btn => {
+    btn.addEventListener("click", () => showView(btn.dataset.view));
+  });
+  ["start", "end"].forEach(prefix => {
+    els[`${prefix}Hour`].addEventListener("change", () => handleHourChange(prefix));
+    els[`${prefix}Minute`].addEventListener("change", syncShiftTimes);
+  });
+  ["editStart", "editEnd"].forEach(prefix => {
+    els[`${prefix}Hour`].addEventListener("change", () => handleHourChange(prefix, syncEditShiftTimes));
+    els[`${prefix}Minute`].addEventListener("change", syncEditShiftTimes);
+  });
+  els.shiftForm.addEventListener("keydown", handleShiftFormKeydown);
+  els.shiftForm.addEventListener("submit", saveShift);
+  els.editShiftForm.addEventListener("keydown", handleEditShiftFormKeydown);
+  els.editShiftForm.addEventListener("submit", saveEditShift);
+  els.closeEditShiftModalBtn.addEventListener("click", closeEditShiftModal);
+  els.cancelEditShiftBtn.addEventListener("click", closeEditShiftModal);
+  els.editShiftModal.addEventListener("click", event => {
+    if (event.target === els.editShiftModal) closeEditShiftModal();
+  });
+  els.resetShiftBtn.addEventListener("click", () => resetShiftForm(false));
+  els.calendarGrid.addEventListener("click", event => {
+    const shiftButton = event.target.closest("button[data-action='edit-shift']");
+    if (shiftButton) {
+      event.stopPropagation();
+      editShift(shiftButton.dataset.id);
+      return;
+    }
+    const day = event.target.closest("[data-action='select-day']");
+    if (!day) return;
+    selectedDate = day.dataset.date;
+    if (selectedDate.slice(0, 7) !== visibleMonth) {
+      visibleMonth = selectedDate.slice(0, 7);
+    }
+    render();
+  });
+  els.selectedDayList.addEventListener("click", event => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+    const { action, id } = button.dataset;
+    if (action === "edit-shift") editShift(id);
+    if (action === "copy-shift") copyShift(id);
+    if (action === "delete-shift") deleteShift(id);
+  });
+  els.openJobModalBtn.addEventListener("click", () => openJobModal());
+  els.closeJobModalBtn.addEventListener("click", closeJobModal);
+  els.cancelJobBtn.addEventListener("click", closeJobModal);
+  els.jobModal.addEventListener("click", event => {
+    if (event.target === els.jobModal) closeJobModal();
+  });
+  els.jobForm.addEventListener("submit", saveJob);
+  els.jobList.addEventListener("click", event => {
+    const button = event.target.closest("button[data-action]");
+    if (!button) return;
+    const { action, id } = button.dataset;
+    if (action === "edit-job") editJob(id);
+    if (action === "delete-job") deleteJob(id);
+  });
+  els.exportBtn.addEventListener("click", exportData);
+  els.clearAllBtn.addEventListener("click", clearAll);
+  els.manualSyncBtn.addEventListener("click", manualSync);
+}
+
+function init() {
+  populateTimeControls("start");
+  populateTimeControls("end");
+  populateTimeControls("editStart");
+  populateTimeControls("editEnd");
+  els.shiftDate.value = todayStr();
+  bindEvents();
+  render();
+  initCloud();
+}
+
+init();
+</script>
+</body>
+</html>
