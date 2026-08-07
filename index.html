@@ -1181,6 +1181,7 @@ const JOB_COLORS = [
   { bg: "#ffe5e8", text: "#b42338", dot: "#f43f5e" },
   { bg: "#e3f6f8", text: "#0f6b78", dot: "#06b6d4" }
 ];
+const MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
 
 const els = {
   monthLabel: document.getElementById("monthLabel"),
@@ -1547,8 +1548,8 @@ function populateTimeControls(prefix) {
     const value = String(index).padStart(2, "0");
     return `<option value="${value}">${value}</option>`;
   }).join("");
-  minute.innerHTML = `<option value="">分</option>` + Array.from({ length: 60 }, (_, index) => {
-    const value = String(index).padStart(2, "0");
+  minute.innerHTML = `<option value="">分</option>` + MINUTE_OPTIONS.map(option => {
+    const value = String(option).padStart(2, "0");
     return `<option value="${value}">${value}</option>`;
   }).join("");
 }
@@ -1564,7 +1565,8 @@ function setTimeControls(prefix, time) {
   }
   const [hour24, minuteValue] = time.split(":").map(Number);
   hour.value = String(hour24 || 0).padStart(2, "0");
-  minute.value = String(minuteValue || 0).padStart(2, "0");
+  const roundedMinute = Math.min(50, Math.round((minuteValue || 0) / 10) * 10);
+  minute.value = String(roundedMinute).padStart(2, "0");
   syncTimeValue(prefix);
 }
 
