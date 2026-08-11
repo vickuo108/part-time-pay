@@ -844,7 +844,7 @@ textarea.field.compact-note {
         <div class="card-head">
           <div>
             <div class="card-title">新增班表</div>
-            <div class="card-sub">工作、時間、加扣款</div>
+            <div class="card-sub">工作、時間、加給</div>
           </div>
         </div>
 
@@ -897,10 +897,6 @@ textarea.field.compact-note {
               <label class="label" for="shiftBonus">加給 / 小費</label>
               <input class="field" type="number" id="shiftBonus" min="0" step="1" inputmode="decimal" placeholder="0">
             </div>
-            <div class="form-group">
-              <label class="label" for="shiftDeduction">扣款</label>
-              <input class="field" type="number" id="shiftDeduction" min="0" step="1" inputmode="decimal" placeholder="0">
-            </div>
             <div class="form-group full">
               <label class="label" for="shiftNote">備註</label>
               <textarea class="field compact-note" id="shiftNote" placeholder="例如：代班、颱風加給、主管提醒"></textarea>
@@ -948,7 +944,7 @@ textarea.field.compact-note {
         <div class="summary-card">
           <div class="summary-label">本月薪水</div>
           <div class="summary-value" id="summaryPay">$0</div>
-          <div class="summary-note">含加給扣款</div>
+          <div class="summary-note">含加給</div>
         </div>
         <div class="summary-card">
           <div class="summary-label">本月工時</div>
@@ -958,7 +954,7 @@ textarea.field.compact-note {
         <div class="summary-card">
           <div class="summary-label">平均時薪</div>
           <div class="summary-value" id="summaryAvg">$0</div>
-          <div class="summary-note">含加給扣款</div>
+          <div class="summary-note">含加給</div>
         </div>
       </section>
 
@@ -1103,10 +1099,6 @@ textarea.field.compact-note {
           <label class="label" for="editShiftBonus">加給 / 小費</label>
           <input class="field" type="number" id="editShiftBonus" min="0" step="1" inputmode="decimal" placeholder="0">
         </div>
-        <div class="form-group">
-          <label class="label" for="editShiftDeduction">扣款</label>
-          <input class="field" type="number" id="editShiftDeduction" min="0" step="1" inputmode="decimal" placeholder="0">
-        </div>
         <div class="form-group full">
           <label class="label" for="editShiftNote">備註</label>
           <textarea class="field compact-note" id="editShiftNote" placeholder="例如：代班、颱風加給、主管提醒"></textarea>
@@ -1223,7 +1215,6 @@ const els = {
   endMinute: document.getElementById("endMinute"),
   shiftBreakMinutes: document.getElementById("shiftBreakMinutes"),
   shiftBonus: document.getElementById("shiftBonus"),
-  shiftDeduction: document.getElementById("shiftDeduction"),
   shiftNote: document.getElementById("shiftNote"),
   resetShiftBtn: document.getElementById("resetShiftBtn"),
   saveShiftBtn: document.getElementById("saveShiftBtn"),
@@ -1248,7 +1239,6 @@ const els = {
   editEndMinute: document.getElementById("editEndMinute"),
   editShiftBreakMinutes: document.getElementById("editShiftBreakMinutes"),
   editShiftBonus: document.getElementById("editShiftBonus"),
-  editShiftDeduction: document.getElementById("editShiftDeduction"),
   editShiftNote: document.getElementById("editShiftNote"),
   reportBody: document.getElementById("reportBody"),
   jobList: document.getElementById("jobList"),
@@ -1321,10 +1311,13 @@ function normalizeState(input) {
     ...job,
     colorIndex: Number.isFinite(Number(job.colorIndex)) ? Number(job.colorIndex) : index % JOB_COLORS.length
   }));
-  normalized.shifts = normalized.shifts.map(shift => ({
-    ...shift,
-    breakMinutes: Math.max(0, Number(shift.breakMinutes || 0))
-  }));
+  normalized.shifts = normalized.shifts.map(shift => {
+    const { deduction, ...rest } = shift;
+    return {
+      ...rest,
+      breakMinutes: Math.max(0, Number(shift.breakMinutes || 0))
+    };
+  });
   return normalized;
 }
 
@@ -1607,7 +1600,7 @@ function calcShift(input) {
   const netMinutes = Math.max(0, grossMinutes - breakMinutes);
   const hours = netMinutes / 60;
   const basePay = hours * Number(input.hourlyRate || 0);
-  const pay = basePay + Number(input.bonus || 0) - Number(input.deduction || 0);
+  const pay = basePay + Number(input.bonus || 0);
   return { hours, pay: Math.max(0, pay) };
 }
 
@@ -1903,7 +1896,6 @@ function saveShift(event) {
     endTime: els.endTime.value,
     breakMinutes: Number(els.shiftBreakMinutes.value || 0),
     bonus: Number(els.shiftBonus.value || 0),
-    deduction: Number(els.shiftDeduction.value || 0),
     note: els.shiftNote.value.trim()
   };
 
@@ -1938,7 +1930,6 @@ function editShift(id) {
   setTimeControls("editEnd", shift.endTime);
   els.editShiftBreakMinutes.value = shift.breakMinutes || "";
   els.editShiftBonus.value = shift.bonus || "";
-  els.editShiftDeduction.value = shift.deduction || "";
   els.editShiftNote.value = shift.note || "";
   syncEditShiftTimes();
   render();
@@ -1966,7 +1957,6 @@ function newShiftFromSelectedDate() {
   setTimeControls("editEnd", "");
   els.editShiftBreakMinutes.value = "";
   els.editShiftBonus.value = "";
-  els.editShiftDeduction.value = "";
   els.editShiftNote.value = "";
   syncEditShiftTimes();
   openEditShiftModal();
@@ -1986,7 +1976,6 @@ function copyShift(id) {
   setTimeControls("editEnd", shift.endTime);
   els.editShiftBreakMinutes.value = shift.breakMinutes || "";
   els.editShiftBonus.value = shift.bonus || "";
-  els.editShiftDeduction.value = shift.deduction || "";
   els.editShiftNote.value = shift.note || "";
   syncEditShiftTimes();
   render();
@@ -2025,7 +2014,6 @@ function saveEditShift(event) {
     endTime: els.editEndTime.value,
     breakMinutes: Number(els.editShiftBreakMinutes.value || 0),
     bonus: Number(els.editShiftBonus.value || 0),
-    deduction: Number(els.editShiftDeduction.value || 0),
     note: els.editShiftNote.value.trim()
   };
 
