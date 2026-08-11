@@ -776,12 +776,6 @@ textarea.field.compact-note {
   font-weight: 850;
 }
 
-.daily-hours-meta {
-  margin-top: 3px;
-  color: var(--muted);
-  font-size: 12px;
-}
-
 .daily-hours-value {
   color: var(--green-dark);
   font-size: 16px;
@@ -1219,7 +1213,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-08-11-4";
+const APP_VERSION = "2026-08-11-5";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1894,8 +1888,7 @@ function renderDailyHours() {
   els.dailyHoursList.innerHTML = rows.map(row => `
     <article class="daily-hours-row">
       <div>
-        <div class="daily-hours-date">${row.date} ${weekdayText(row.date)}</div>
-        <div class="daily-hours-meta">${row.count} 筆班表</div>
+        <div class="daily-hours-date">${dateWithWeekday(row.date)}</div>
       </div>
       <div class="daily-hours-value">${hoursText(row.hours)}</div>
     </article>
@@ -2236,6 +2229,10 @@ function clearAll() {
 function weekdayText(dateStr) {
   const day = new Date(dateStr + "T00:00:00").getDay();
   return ["日", "一", "二", "三", "四", "五", "六"][day];
+}
+
+function dateWithWeekday(dateStr) {
+  return `${dateStr}(${weekdayText(dateStr)})`;
 }
 
 function escapeHtml(value) {
