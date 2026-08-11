@@ -1163,6 +1163,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
+const APP_VERSION = "2026-08-11-1";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -2144,6 +2145,23 @@ function toast(message) {
   toast.timer = setTimeout(() => els.toast.classList.remove("show"), 1800);
 }
 
+async function checkForAppUpdate() {
+  if (!window.fetch) return;
+  try {
+    const url = `${window.location.pathname}?versionCheck=${Date.now()}`;
+    const response = await fetch(url, { cache: "no-store" });
+    if (!response.ok) return;
+    const html = await response.text();
+    const match = html.match(/const APP_VERSION = "([^"]+)"/);
+    const latestVersion = match && match[1];
+    if (!latestVersion || latestVersion === APP_VERSION) return;
+    toast("正在更新版本");
+    window.location.reload();
+  } catch (err) {
+    console.warn(err);
+  }
+}
+
 function showView(name) {
   document.querySelectorAll(".view").forEach(view => view.classList.remove("active"));
   document.getElementById(`view${name}`).classList.add("active");
@@ -2267,6 +2285,11 @@ function bindEvents() {
   els.authModal.addEventListener("click", event => {
     if (event.target === els.authModal) closeAuthModal();
   });
+  window.addEventListener("focus", checkForAppUpdate);
+  window.addEventListener("pageshow", checkForAppUpdate);
+  document.addEventListener("visibilitychange", () => {
+    if (!document.hidden) checkForAppUpdate();
+  });
 }
 
 function init() {
@@ -2279,6 +2302,7 @@ function init() {
   renderAuthButton();
   render();
   initCloud();
+  setTimeout(checkForAppUpdate, 2500);
 }
 
 init();
