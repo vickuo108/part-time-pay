@@ -890,8 +890,8 @@ textarea.field.compact-note {
               </div>
             </div>
             <div class="form-group">
-              <label class="label" for="shiftBreakMinutes">休息分鐘</label>
-              <input class="field" type="number" id="shiftBreakMinutes" min="0" step="1" inputmode="numeric" placeholder="0">
+              <label class="label" for="shiftBreakHours">休息小時</label>
+              <input class="field" type="number" id="shiftBreakHours" min="0" step="0.5" inputmode="decimal" placeholder="0">
             </div>
             <div class="form-group">
               <label class="label" for="shiftBonus">加給 / 小費</label>
@@ -1092,8 +1092,8 @@ textarea.field.compact-note {
           </div>
         </div>
         <div class="form-group">
-          <label class="label" for="editShiftBreakMinutes">休息分鐘</label>
-          <input class="field" type="number" id="editShiftBreakMinutes" min="0" step="1" inputmode="numeric" placeholder="0">
+          <label class="label" for="editShiftBreakHours">休息小時</label>
+          <input class="field" type="number" id="editShiftBreakHours" min="0" step="0.5" inputmode="decimal" placeholder="0">
         </div>
         <div class="form-group">
           <label class="label" for="editShiftBonus">加給 / 小費</label>
@@ -1163,7 +1163,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-08-11-2";
+const APP_VERSION = "2026-08-11-3";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1214,7 +1214,7 @@ const els = {
   endTime: document.getElementById("endTime"),
   endHour: document.getElementById("endHour"),
   endMinute: document.getElementById("endMinute"),
-  shiftBreakMinutes: document.getElementById("shiftBreakMinutes"),
+  shiftBreakHours: document.getElementById("shiftBreakHours"),
   shiftBonus: document.getElementById("shiftBonus"),
   shiftNote: document.getElementById("shiftNote"),
   resetShiftBtn: document.getElementById("resetShiftBtn"),
@@ -1238,7 +1238,7 @@ const els = {
   editEndTime: document.getElementById("editEndTime"),
   editEndHour: document.getElementById("editEndHour"),
   editEndMinute: document.getElementById("editEndMinute"),
-  editShiftBreakMinutes: document.getElementById("editShiftBreakMinutes"),
+  editShiftBreakHours: document.getElementById("editShiftBreakHours"),
   editShiftBonus: document.getElementById("editShiftBonus"),
   editShiftNote: document.getElementById("editShiftNote"),
   reportBody: document.getElementById("reportBody"),
@@ -1591,6 +1591,15 @@ function timeMinutes(time) {
   return h * 60 + m;
 }
 
+function breakHoursToMinutes(value) {
+  return Math.max(0, Math.round(Number(value || 0) * 60));
+}
+
+function breakMinutesToHours(value) {
+  const hours = Math.max(0, Number(value || 0)) / 60;
+  return Number.isInteger(hours) ? String(hours) : String(Math.round(hours * 100) / 100);
+}
+
 function calcShift(input) {
   const start = timeMinutes(input.startTime);
   let end = timeMinutes(input.endTime);
@@ -1754,7 +1763,7 @@ function renderSelectedDay() {
   els.selectedDayList.innerHTML = shifts.map(shift => {
     const calc = calcShift(shift);
     const note = shift.note ? `<div class="shift-note">${escapeHtml(shift.note)}</div>` : "";
-    const breakText = Number(shift.breakMinutes || 0) > 0 ? `｜休息 ${Number(shift.breakMinutes)} 分` : "";
+    const breakText = Number(shift.breakMinutes || 0) > 0 ? `｜休息 ${breakMinutesToHours(shift.breakMinutes)} 小時` : "";
     return `
       <article class="shift-item">
         <div class="shift-main">
@@ -1895,7 +1904,7 @@ function saveShift(event) {
     date: els.shiftDate.value,
     startTime: els.startTime.value,
     endTime: els.endTime.value,
-    breakMinutes: Number(els.shiftBreakMinutes.value || 0),
+    breakMinutes: breakHoursToMinutes(els.shiftBreakHours.value),
     bonus: Number(els.shiftBonus.value || 0),
     note: els.shiftNote.value.trim()
   };
@@ -1929,7 +1938,7 @@ function editShift(id) {
   els.editShiftDate.value = shift.date;
   setTimeControls("editStart", shift.startTime);
   setTimeControls("editEnd", shift.endTime);
-  els.editShiftBreakMinutes.value = shift.breakMinutes || "";
+  els.editShiftBreakHours.value = shift.breakMinutes ? breakMinutesToHours(shift.breakMinutes) : "";
   els.editShiftBonus.value = shift.bonus || "";
   els.editShiftNote.value = shift.note || "";
   syncEditShiftTimes();
@@ -1956,7 +1965,7 @@ function newShiftFromSelectedDate() {
   els.editShiftDate.value = selectedDate;
   setTimeControls("editStart", "");
   setTimeControls("editEnd", "");
-  els.editShiftBreakMinutes.value = "";
+  els.editShiftBreakHours.value = "";
   els.editShiftBonus.value = "";
   els.editShiftNote.value = "";
   syncEditShiftTimes();
@@ -1975,7 +1984,7 @@ function copyShift(id) {
   els.editShiftDate.value = shift.date;
   setTimeControls("editStart", shift.startTime);
   setTimeControls("editEnd", shift.endTime);
-  els.editShiftBreakMinutes.value = shift.breakMinutes || "";
+  els.editShiftBreakHours.value = shift.breakMinutes ? breakMinutesToHours(shift.breakMinutes) : "";
   els.editShiftBonus.value = shift.bonus || "";
   els.editShiftNote.value = shift.note || "";
   syncEditShiftTimes();
@@ -2013,7 +2022,7 @@ function saveEditShift(event) {
     date: els.editShiftDate.value,
     startTime: els.editStartTime.value,
     endTime: els.editEndTime.value,
-    breakMinutes: Number(els.editShiftBreakMinutes.value || 0),
+    breakMinutes: breakHoursToMinutes(els.editShiftBreakHours.value),
     bonus: Number(els.editShiftBonus.value || 0),
     note: els.editShiftNote.value.trim()
   };
