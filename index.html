@@ -220,6 +220,16 @@ button {
 .summary-card {
   padding: 12px 10px;
   min-height: 78px;
+  text-align: left;
+}
+
+.summary-button {
+  width: 100%;
+  cursor: pointer;
+}
+
+.summary-button:active {
+  background: var(--mint-2);
 }
 
 .summary-label {
@@ -744,6 +754,42 @@ textarea.field.compact-note {
   font-weight: 900;
 }
 
+.daily-hours-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.daily-hours-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.daily-hours-date {
+  font-size: 14px;
+  font-weight: 850;
+}
+
+.daily-hours-meta {
+  margin-top: 3px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.daily-hours-value {
+  color: var(--green-dark);
+  font-size: 16px;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
 .auth-note {
   margin-top: 8px;
   color: var(--muted);
@@ -946,11 +992,11 @@ textarea.field.compact-note {
           <div class="summary-value" id="summaryPay">$0</div>
           <div class="summary-note">含加給</div>
         </div>
-        <div class="summary-card">
+        <button class="summary-card summary-button" id="monthlyHoursCard" type="button" aria-label="查看每天的工時">
           <div class="summary-label">本月工時</div>
           <div class="summary-value" id="summaryHours">0h</div>
           <div class="summary-note" id="summaryShiftCount">0 筆班表</div>
-        </div>
+        </button>
         <div class="summary-card">
           <div class="summary-label">平均時薪</div>
           <div class="summary-value" id="summaryAvg">$0</div>
@@ -1024,6 +1070,16 @@ textarea.field.compact-note {
       <span>設定</span>
     </button>
   </nav>
+</div>
+
+<div class="modal" id="dailyHoursModal" aria-hidden="true">
+  <div class="sheet">
+    <div class="sheet-head">
+      <div class="sheet-title">每日工時</div>
+      <button class="close-btn" id="closeDailyHoursModalBtn" aria-label="關閉">×</button>
+    </div>
+    <div class="daily-hours-list" id="dailyHoursList"></div>
+  </div>
 </div>
 
 <div class="modal" id="authModal" aria-hidden="true">
@@ -1163,7 +1219,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-08-11-3";
+const APP_VERSION = "2026-08-11-4";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1201,6 +1257,7 @@ const els = {
   authNote: document.getElementById("authNote"),
   googleAuthBtn: document.getElementById("googleAuthBtn"),
   summaryPay: document.getElementById("summaryPay"),
+  monthlyHoursCard: document.getElementById("monthlyHoursCard"),
   summaryHours: document.getElementById("summaryHours"),
   summaryShiftCount: document.getElementById("summaryShiftCount"),
   summaryAvg: document.getElementById("summaryAvg"),
@@ -1223,6 +1280,9 @@ const els = {
   selectedDayTitle: document.getElementById("selectedDayTitle"),
   selectedDayList: document.getElementById("selectedDayList"),
   selectedDayAddBtn: document.getElementById("selectedDayAddBtn"),
+  dailyHoursModal: document.getElementById("dailyHoursModal"),
+  closeDailyHoursModalBtn: document.getElementById("closeDailyHoursModalBtn"),
+  dailyHoursList: document.getElementById("dailyHoursList"),
   editShiftModal: document.getElementById("editShiftModal"),
   editShiftModalTitle: document.getElementById("editShiftModalTitle"),
   closeEditShiftModalBtn: document.getElementById("closeEditShiftModalBtn"),
@@ -1813,6 +1873,46 @@ function renderReport() {
     `).join("");
 }
 
+function dailyHoursRows() {
+  const rows = new Map();
+  getMonthShifts().forEach(shift => {
+    const calc = calcShift(shift);
+    const row = rows.get(shift.date) || { date: shift.date, count: 0, hours: 0 };
+    row.count += 1;
+    row.hours += calc.hours;
+    rows.set(shift.date, row);
+  });
+  return Array.from(rows.values()).sort((a, b) => a.date.localeCompare(b.date));
+}
+
+function renderDailyHours() {
+  const rows = dailyHoursRows();
+  if (!rows.length) {
+    els.dailyHoursList.innerHTML = `<div class="empty">這個月份還沒有班表。</div>`;
+    return;
+  }
+  els.dailyHoursList.innerHTML = rows.map(row => `
+    <article class="daily-hours-row">
+      <div>
+        <div class="daily-hours-date">${row.date} ${weekdayText(row.date)}</div>
+        <div class="daily-hours-meta">${row.count} 筆班表</div>
+      </div>
+      <div class="daily-hours-value">${hoursText(row.hours)}</div>
+    </article>
+  `).join("");
+}
+
+function openDailyHoursModal() {
+  renderDailyHours();
+  els.dailyHoursModal.classList.add("open");
+  els.dailyHoursModal.setAttribute("aria-hidden", "false");
+}
+
+function closeDailyHoursModal() {
+  els.dailyHoursModal.classList.remove("open");
+  els.dailyHoursModal.setAttribute("aria-hidden", "true");
+}
+
 function renderJobs() {
   if (!state.jobs.length) {
     els.jobList.innerHTML = `<div class="empty">還沒有工作設定。先新增一個工作，才能快速記班表。</div>`;
@@ -2289,6 +2389,11 @@ function bindEvents() {
   els.manualSyncBtn.addEventListener("click", manualSync);
   els.authBtn.addEventListener("click", handleAuthButton);
   els.authForm.addEventListener("submit", handleAuthSubmit);
+  els.monthlyHoursCard.addEventListener("click", openDailyHoursModal);
+  els.closeDailyHoursModalBtn.addEventListener("click", closeDailyHoursModal);
+  els.dailyHoursModal.addEventListener("click", event => {
+    if (event.target === els.dailyHoursModal) closeDailyHoursModal();
+  });
   els.closeAuthModalBtn.addEventListener("click", closeAuthModal);
   els.cancelAuthBtn.addEventListener("click", closeAuthModal);
   els.authModal.addEventListener("click", event => {
