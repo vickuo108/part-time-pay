@@ -890,6 +890,10 @@ textarea.field.compact-note {
               </div>
             </div>
             <div class="form-group">
+              <label class="label" for="shiftBreakMinutes">休息分鐘</label>
+              <input class="field" type="number" id="shiftBreakMinutes" min="0" step="1" inputmode="numeric" placeholder="0">
+            </div>
+            <div class="form-group">
               <label class="label" for="shiftBonus">加給 / 小費</label>
               <input class="field" type="number" id="shiftBonus" min="0" step="1" inputmode="decimal" placeholder="0">
             </div>
@@ -1092,6 +1096,10 @@ textarea.field.compact-note {
           </div>
         </div>
         <div class="form-group">
+          <label class="label" for="editShiftBreakMinutes">休息分鐘</label>
+          <input class="field" type="number" id="editShiftBreakMinutes" min="0" step="1" inputmode="numeric" placeholder="0">
+        </div>
+        <div class="form-group">
           <label class="label" for="editShiftBonus">加給 / 小費</label>
           <input class="field" type="number" id="editShiftBonus" min="0" step="1" inputmode="decimal" placeholder="0">
         </div>
@@ -1213,6 +1221,7 @@ const els = {
   endTime: document.getElementById("endTime"),
   endHour: document.getElementById("endHour"),
   endMinute: document.getElementById("endMinute"),
+  shiftBreakMinutes: document.getElementById("shiftBreakMinutes"),
   shiftBonus: document.getElementById("shiftBonus"),
   shiftDeduction: document.getElementById("shiftDeduction"),
   shiftNote: document.getElementById("shiftNote"),
@@ -1237,6 +1246,7 @@ const els = {
   editEndTime: document.getElementById("editEndTime"),
   editEndHour: document.getElementById("editEndHour"),
   editEndMinute: document.getElementById("editEndMinute"),
+  editShiftBreakMinutes: document.getElementById("editShiftBreakMinutes"),
   editShiftBonus: document.getElementById("editShiftBonus"),
   editShiftDeduction: document.getElementById("editShiftDeduction"),
   editShiftNote: document.getElementById("editShiftNote"),
@@ -1310,6 +1320,10 @@ function normalizeState(input) {
   normalized.jobs = normalized.jobs.map((job, index) => ({
     ...job,
     colorIndex: Number.isFinite(Number(job.colorIndex)) ? Number(job.colorIndex) : index % JOB_COLORS.length
+  }));
+  normalized.shifts = normalized.shifts.map(shift => ({
+    ...shift,
+    breakMinutes: Math.max(0, Number(shift.breakMinutes || 0))
   }));
   return normalized;
 }
@@ -1589,7 +1603,9 @@ function calcShift(input) {
   if (!input.startTime || !input.endTime) return { hours: 0, pay: 0 };
   if (end <= start) end += 24 * 60;
   const grossMinutes = Math.max(0, end - start);
-  const hours = grossMinutes / 60;
+  const breakMinutes = Math.min(grossMinutes, Math.max(0, Number(input.breakMinutes || 0)));
+  const netMinutes = Math.max(0, grossMinutes - breakMinutes);
+  const hours = netMinutes / 60;
   const basePay = hours * Number(input.hourlyRate || 0);
   const pay = basePay + Number(input.bonus || 0) - Number(input.deduction || 0);
   return { hours, pay: Math.max(0, pay) };
@@ -1744,13 +1760,14 @@ function renderSelectedDay() {
   els.selectedDayList.innerHTML = shifts.map(shift => {
     const calc = calcShift(shift);
     const note = shift.note ? `<div class="shift-note">${escapeHtml(shift.note)}</div>` : "";
+    const breakText = Number(shift.breakMinutes || 0) > 0 ? `｜休息 ${Number(shift.breakMinutes)} 分` : "";
     return `
       <article class="shift-item">
         <div class="shift-main">
           <div>
             <div class="shift-title">${escapeHtml(shift.jobName)}</div>
             <div class="shift-meta">${displayTime(shift.startTime)} - ${displayTime(shift.endTime)}</div>
-            <div class="shift-meta">${hoursText(calc.hours)}｜時薪 ${money(shift.hourlyRate)}</div>
+            <div class="shift-meta">${hoursText(calc.hours)}｜時薪 ${money(shift.hourlyRate)}${breakText}</div>
           </div>
           <div class="shift-pay">${money(calc.pay)}</div>
         </div>
@@ -1884,6 +1901,7 @@ function saveShift(event) {
     date: els.shiftDate.value,
     startTime: els.startTime.value,
     endTime: els.endTime.value,
+    breakMinutes: Number(els.shiftBreakMinutes.value || 0),
     bonus: Number(els.shiftBonus.value || 0),
     deduction: Number(els.shiftDeduction.value || 0),
     note: els.shiftNote.value.trim()
@@ -1918,6 +1936,7 @@ function editShift(id) {
   els.editShiftDate.value = shift.date;
   setTimeControls("editStart", shift.startTime);
   setTimeControls("editEnd", shift.endTime);
+  els.editShiftBreakMinutes.value = shift.breakMinutes || "";
   els.editShiftBonus.value = shift.bonus || "";
   els.editShiftDeduction.value = shift.deduction || "";
   els.editShiftNote.value = shift.note || "";
@@ -1945,6 +1964,7 @@ function newShiftFromSelectedDate() {
   els.editShiftDate.value = selectedDate;
   setTimeControls("editStart", "");
   setTimeControls("editEnd", "");
+  els.editShiftBreakMinutes.value = "";
   els.editShiftBonus.value = "";
   els.editShiftDeduction.value = "";
   els.editShiftNote.value = "";
@@ -1964,6 +1984,7 @@ function copyShift(id) {
   els.editShiftDate.value = shift.date;
   setTimeControls("editStart", shift.startTime);
   setTimeControls("editEnd", shift.endTime);
+  els.editShiftBreakMinutes.value = shift.breakMinutes || "";
   els.editShiftBonus.value = shift.bonus || "";
   els.editShiftDeduction.value = shift.deduction || "";
   els.editShiftNote.value = shift.note || "";
@@ -2002,6 +2023,7 @@ function saveEditShift(event) {
     date: els.editShiftDate.value,
     startTime: els.editStartTime.value,
     endTime: els.editEndTime.value,
+    breakMinutes: Number(els.editShiftBreakMinutes.value || 0),
     bonus: Number(els.editShiftBonus.value || 0),
     deduction: Number(els.editShiftDeduction.value || 0),
     note: els.editShiftNote.value.trim()
