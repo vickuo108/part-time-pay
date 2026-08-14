@@ -1213,7 +1213,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-08-11-5";
+const APP_VERSION = "2026-08-14-1";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1380,6 +1380,20 @@ function jobColor(jobId) {
   const job = state.jobs.find(item => item.id === jobId);
   const index = job ? Number(job.colorIndex || 0) : 0;
   return JOB_COLORS[((index % JOB_COLORS.length) + JOB_COLORS.length) % JOB_COLORS.length];
+}
+
+function currentJobForShift(shift) {
+  return state.jobs.find(job => job.id === shift.jobId);
+}
+
+function shiftJobName(shift) {
+  const job = currentJobForShift(shift);
+  return job ? job.name : (shift.jobName || "未命名工作");
+}
+
+function shiftHourlyRate(shift) {
+  const job = currentJobForShift(shift);
+  return Number(job ? job.hourlyRate : (shift.hourlyRate || 0));
 }
 
 function setSyncStatus(status, text) {
@@ -1663,7 +1677,7 @@ function calcShift(input) {
   const breakMinutes = Math.min(grossMinutes, Math.max(0, Number(input.breakMinutes || 0)));
   const netMinutes = Math.max(0, grossMinutes - breakMinutes);
   const hours = netMinutes / 60;
-  const basePay = hours * Number(input.hourlyRate || 0);
+  const basePay = hours * shiftHourlyRate(input);
   const pay = basePay + Number(input.bonus || 0);
   return { hours, pay: Math.max(0, pay) };
 }
@@ -1822,9 +1836,9 @@ function renderSelectedDay() {
       <article class="shift-item">
         <div class="shift-main">
           <div>
-            <div class="shift-title">${escapeHtml(shift.jobName)}</div>
+            <div class="shift-title">${escapeHtml(shiftJobName(shift))}</div>
             <div class="shift-meta">${displayTime(shift.startTime)} - ${displayTime(shift.endTime)}</div>
-            <div class="shift-meta">${hoursText(calc.hours)}｜時薪 ${money(shift.hourlyRate)}${breakText}</div>
+            <div class="shift-meta">${hoursText(calc.hours)}｜時薪 ${money(shiftHourlyRate(shift))}${breakText}</div>
           </div>
           <div class="shift-pay">${money(calc.pay)}</div>
         </div>
@@ -1843,11 +1857,14 @@ function renderReport() {
   const rows = new Map();
   getMonthShifts().forEach(shift => {
     const calc = calcShift(shift);
-    const row = rows.get(shift.jobName) || { name: shift.jobName, count: 0, hours: 0, pay: 0 };
+    const name = shiftJobName(shift);
+    const key = shift.jobId || name;
+    const row = rows.get(key) || { name, count: 0, hours: 0, pay: 0 };
+    row.name = name;
     row.count += 1;
     row.hours += calc.hours;
     row.pay += calc.pay;
-    rows.set(shift.jobName, row);
+    rows.set(key, row);
   });
 
   if (!rows.size) {
