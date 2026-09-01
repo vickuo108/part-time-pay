@@ -1213,7 +1213,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-09-01-1";
+const APP_VERSION = "2026-09-01-2";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1604,7 +1604,8 @@ function parseDateStr(dateStr) {
 
 function weekKey(dateStr) {
   const date = parseDateStr(dateStr);
-  date.setDate(date.getDate() - date.getDay());
+  const mondayOffset = (date.getDay() + 6) % 7;
+  date.setDate(date.getDate() - mondayOffset);
   return localDateStr(date);
 }
 
