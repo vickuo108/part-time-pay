@@ -984,7 +984,7 @@ textarea.field.compact-note {
         <div class="summary-card">
           <div class="summary-label">本月薪水</div>
           <div class="summary-value" id="summaryPay">$0</div>
-          <div class="summary-note">含加給</div>
+          <div class="summary-note">含加班、加給</div>
         </div>
         <button class="summary-card summary-button" id="monthlyHoursCard" type="button" aria-label="查看每天的工時">
           <div class="summary-label">本月工時</div>
@@ -994,7 +994,7 @@ textarea.field.compact-note {
         <div class="summary-card">
           <div class="summary-label">平均時薪</div>
           <div class="summary-value" id="summaryAvg">$0</div>
-          <div class="summary-note">含加給</div>
+          <div class="summary-note">含加班、加給</div>
         </div>
       </section>
 
@@ -1213,7 +1213,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-08-14-1";
+const APP_VERSION = "2026-09-01-1";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1234,6 +1234,9 @@ const JOB_COLORS = [
   { bg: "#e3f6f8", text: "#0f6b78", dot: "#06b6d4" }
 ];
 const MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
+const DAILY_REGULAR_HOURS = 8;
+const WEEKLY_REGULAR_HOURS = 40;
+const OVERTIME_HOURLY_RATE = 298;
 
 const els = {
   monthLabel: document.getElementById("monthLabel"),
@@ -1594,6 +1597,17 @@ function localDateStr(date) {
   return d.toISOString().slice(0, 10);
 }
 
+function parseDateStr(dateStr) {
+  const [year, month, day] = String(dateStr || "").split("-").map(Number);
+  return new Date(year || 1970, (month || 1) - 1, day || 1);
+}
+
+function weekKey(dateStr) {
+  const date = parseDateStr(dateStr);
+  date.setDate(date.getDate() - date.getDay());
+  return localDateStr(date);
+}
+
 function monthKey(date) {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -1668,18 +1682,79 @@ function breakMinutesToHours(value) {
   return Number.isInteger(hours) ? String(hours) : String(Math.round(hours * 100) / 100);
 }
 
-function calcShift(input) {
+function shiftHours(input) {
   const start = timeMinutes(input.startTime);
   let end = timeMinutes(input.endTime);
-  if (!input.startTime || !input.endTime) return { hours: 0, pay: 0 };
+  if (!input.startTime || !input.endTime) return 0;
   if (end <= start) end += 24 * 60;
   const grossMinutes = Math.max(0, end - start);
   const breakMinutes = Math.min(grossMinutes, Math.max(0, Number(input.breakMinutes || 0)));
   const netMinutes = Math.max(0, grossMinutes - breakMinutes);
-  const hours = netMinutes / 60;
-  const basePay = hours * shiftHourlyRate(input);
-  const pay = basePay + Number(input.bonus || 0);
-  return { hours, pay: Math.max(0, pay) };
+  return netMinutes / 60;
+}
+
+function calcShift(input) {
+  const hours = shiftHours(input);
+  const pay = hours * shiftHourlyRate(input) + Number(input.bonus || 0);
+  return {
+    hours,
+    regularHours: hours,
+    overtimeHours: 0,
+    dailyOvertimeHours: 0,
+    weeklyOvertimeHours: 0,
+    pay: Math.max(0, pay)
+  };
+}
+
+function calculateShiftPays(shifts) {
+  const sorted = [...shifts].sort((a, b) => `${a.date} ${a.startTime} ${a.id}`.localeCompare(`${b.date} ${b.startTime} ${b.id}`));
+  const details = new Map(sorted.map(shift => [shift.id, {
+    hours: shiftHours(shift),
+    regularHours: 0,
+    overtimeHours: 0,
+    dailyOvertimeHours: 0,
+    weeklyOvertimeHours: 0,
+    pay: 0
+  }]));
+
+  const dailyUsed = new Map();
+  sorted.forEach(shift => {
+    const detail = details.get(shift.id);
+    const used = dailyUsed.get(shift.date) || 0;
+    const remainingRegular = Math.max(0, DAILY_REGULAR_HOURS - used);
+    detail.regularHours = Math.min(detail.hours, remainingRegular);
+    detail.dailyOvertimeHours = Math.max(0, detail.hours - detail.regularHours);
+    detail.overtimeHours = detail.dailyOvertimeHours;
+    dailyUsed.set(shift.date, used + detail.hours);
+  });
+
+  const weeklyRegularUsed = new Map();
+  sorted.forEach(shift => {
+    const detail = details.get(shift.id);
+    const key = weekKey(shift.date);
+    const used = weeklyRegularUsed.get(key) || 0;
+    const regularBeforeWeeklyRule = detail.regularHours;
+    const remainingRegular = Math.max(0, WEEKLY_REGULAR_HOURS - used);
+    detail.regularHours = Math.min(regularBeforeWeeklyRule, remainingRegular);
+    detail.weeklyOvertimeHours = Math.max(0, regularBeforeWeeklyRule - detail.regularHours);
+    detail.overtimeHours += detail.weeklyOvertimeHours;
+    weeklyRegularUsed.set(key, used + regularBeforeWeeklyRule);
+  });
+
+  sorted.forEach(shift => {
+    const detail = details.get(shift.id);
+    const regularPay = detail.regularHours * shiftHourlyRate(shift);
+    const overtimePay = detail.overtimeHours * OVERTIME_HOURLY_RATE;
+    detail.pay = Math.max(0, regularPay + overtimePay + Number(shift.bonus || 0));
+  });
+
+  return details;
+}
+
+function getMonthPayDetails(monthShifts = getMonthShifts()) {
+  const weekKeys = new Set(monthShifts.map(shift => weekKey(shift.date)));
+  const contextShifts = state.shifts.filter(shift => shift.date && weekKeys.has(weekKey(shift.date)));
+  return calculateShiftPays(contextShifts);
 }
 
 function currentJob() {
@@ -1764,8 +1839,9 @@ function renderJobOptions() {
 
 function renderSummary() {
   const shifts = getMonthShifts();
+  const payDetails = getMonthPayDetails(shifts);
   const total = shifts.reduce((acc, shift) => {
-    const calc = calcShift(shift);
+    const calc = payDetails.get(shift.id) || calcShift(shift);
     acc.hours += calc.hours;
     acc.pay += calc.pay;
     return acc;
@@ -1828,17 +1904,19 @@ function renderSelectedDay() {
     return;
   }
 
+  const payDetails = getMonthPayDetails();
   els.selectedDayList.innerHTML = shifts.map(shift => {
-    const calc = calcShift(shift);
+    const calc = payDetails.get(shift.id) || calcShift(shift);
     const note = shift.note ? `<div class="shift-note">${escapeHtml(shift.note)}</div>` : "";
     const breakText = Number(shift.breakMinutes || 0) > 0 ? `｜休息 ${breakMinutesToHours(shift.breakMinutes)} 小時` : "";
+    const overtimeText = calc.overtimeHours > 0 ? `｜加班 ${hoursText(calc.overtimeHours)} x ${money(OVERTIME_HOURLY_RATE)}` : "";
     return `
       <article class="shift-item">
         <div class="shift-main">
           <div>
             <div class="shift-title">${escapeHtml(shiftJobName(shift))}</div>
             <div class="shift-meta">${displayTime(shift.startTime)} - ${displayTime(shift.endTime)}</div>
-            <div class="shift-meta">${hoursText(calc.hours)}｜時薪 ${money(shiftHourlyRate(shift))}${breakText}</div>
+            <div class="shift-meta">${hoursText(calc.hours)}｜時薪 ${money(shiftHourlyRate(shift))}${breakText}${overtimeText}</div>
           </div>
           <div class="shift-pay">${money(calc.pay)}</div>
         </div>
@@ -1855,8 +1933,10 @@ function renderSelectedDay() {
 
 function renderReport() {
   const rows = new Map();
-  getMonthShifts().forEach(shift => {
-    const calc = calcShift(shift);
+  const shifts = getMonthShifts();
+  const payDetails = getMonthPayDetails(shifts);
+  shifts.forEach(shift => {
+    const calc = payDetails.get(shift.id) || calcShift(shift);
     const name = shiftJobName(shift);
     const key = shift.jobId || name;
     const row = rows.get(key) || { name, count: 0, hours: 0, pay: 0 };
