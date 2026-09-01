@@ -777,11 +777,21 @@ textarea.field.compact-note {
 }
 
 .daily-hours-value {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
   color: var(--green-dark);
   font-size: 16px;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   white-space: nowrap;
+}
+
+.daily-hours-pay {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 750;
 }
 
 .auth-note {
@@ -1069,7 +1079,7 @@ textarea.field.compact-note {
 <div class="modal" id="dailyHoursModal" aria-hidden="true">
   <div class="sheet">
     <div class="sheet-head">
-      <div class="sheet-title">每日工時</div>
+      <div class="sheet-title">每日工時及金額</div>
       <button class="close-btn" id="closeDailyHoursModalBtn" aria-label="關閉">×</button>
     </div>
     <div class="daily-hours-list" id="dailyHoursList"></div>
@@ -1213,7 +1223,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-09-01-2";
+const APP_VERSION = "2026-09-01-3";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1967,11 +1977,14 @@ function renderReport() {
 
 function dailyHoursRows() {
   const rows = new Map();
-  getMonthShifts().forEach(shift => {
-    const calc = calcShift(shift);
-    const row = rows.get(shift.date) || { date: shift.date, count: 0, hours: 0 };
+  const shifts = getMonthShifts();
+  const payDetails = getMonthPayDetails(shifts);
+  shifts.forEach(shift => {
+    const calc = payDetails.get(shift.id) || calcShift(shift);
+    const row = rows.get(shift.date) || { date: shift.date, count: 0, hours: 0, pay: 0 };
     row.count += 1;
     row.hours += calc.hours;
+    row.pay += calc.pay;
     rows.set(shift.date, row);
   });
   return Array.from(rows.values()).sort((a, b) => a.date.localeCompare(b.date));
@@ -1988,7 +2001,10 @@ function renderDailyHours() {
       <div>
         <div class="daily-hours-date">${dateWithWeekday(row.date)}</div>
       </div>
-      <div class="daily-hours-value">${hoursText(row.hours)}</div>
+      <div class="daily-hours-value">
+        <span>${hoursText(row.hours)}</span>
+        <span class="daily-hours-pay">${money(row.pay)}</span>
+      </div>
     </article>
   `).join("");
 }
