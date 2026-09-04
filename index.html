@@ -1240,7 +1240,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-09-04-2";
+const APP_VERSION = "2026-09-04-3";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -2052,6 +2052,10 @@ function openDailyHoursModal() {
   els.dailyHoursModal.setAttribute("aria-hidden", "false");
 }
 
+function openDailyHoursModalAfterRender() {
+  setTimeout(openDailyHoursModal, 0);
+}
+
 function closeDailyHoursModal() {
   els.dailyHoursModal.classList.remove("open");
   els.dailyHoursModal.setAttribute("aria-hidden", "true");
@@ -2284,12 +2288,14 @@ function saveEditShift(event) {
   const shouldReturnToDailyHours = returnToDailyHoursAfterEdit;
   saveState();
   closeEditShiftModal({ keepReturnTarget: shouldReturnToDailyHours });
-  render();
   if (shouldReturnToDailyHours) {
     returnToDailyHoursAfterEdit = false;
     dailyHoursEditDate = "";
     showView("Report");
-    openDailyHoursModal();
+    render();
+    openDailyHoursModalAfterRender();
+  } else {
+    render();
   }
   toast(isEditing ? "班表已更新" : "班表已儲存");
 }
