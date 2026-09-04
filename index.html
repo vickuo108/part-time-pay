@@ -1240,7 +1240,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-09-04-1";
+const APP_VERSION = "2026-09-04-2";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1358,6 +1358,8 @@ let db = null;
 let fbUser = null;
 let syncTimer = null;
 let isCloudApplying = false;
+let returnToDailyHoursAfterEdit = false;
+let dailyHoursEditDate = "";
 
 function loadState() {
   let loaded;
@@ -2033,9 +2035,12 @@ function editDailyHoursDate(dateStr) {
   visibleMonth = dateStr.slice(0, 7);
   closeDailyHoursModal();
   if (shifts.length === 1) {
+    returnToDailyHoursAfterEdit = true;
+    dailyHoursEditDate = "";
     editShift(shifts[0].id);
     return;
   }
+  dailyHoursEditDate = dateStr;
   showView("Shifts");
   render();
   toast("這天有多筆班表，請選要修改的班表");
@@ -2231,9 +2236,10 @@ function copyShift(id) {
   openEditShiftModal();
 }
 
-function closeEditShiftModal() {
+function closeEditShiftModal(options = {}) {
   els.editShiftModal.classList.remove("open");
   els.editShiftModal.setAttribute("aria-hidden", "true");
+  if (!options.keepReturnTarget) returnToDailyHoursAfterEdit = false;
 }
 
 function saveEditShift(event) {
@@ -2275,9 +2281,16 @@ function saveEditShift(event) {
   else state.shifts.push(shift);
   visibleMonth = shift.date.slice(0, 7);
   selectedDate = shift.date;
+  const shouldReturnToDailyHours = returnToDailyHoursAfterEdit;
   saveState();
-  closeEditShiftModal();
+  closeEditShiftModal({ keepReturnTarget: shouldReturnToDailyHours });
   render();
+  if (shouldReturnToDailyHours) {
+    returnToDailyHoursAfterEdit = false;
+    dailyHoursEditDate = "";
+    showView("Report");
+    openDailyHoursModal();
+  }
   toast(isEditing ? "班表已更新" : "班表已儲存");
 }
 
@@ -2415,6 +2428,7 @@ async function checkForAppUpdate() {
 }
 
 function showView(name) {
+  if (name !== "Shifts") dailyHoursEditDate = "";
   document.querySelectorAll(".view").forEach(view => view.classList.remove("active"));
   document.getElementById(`view${name}`).classList.add("active");
   document.querySelectorAll(".nav-btn").forEach(btn => {
@@ -2508,7 +2522,12 @@ function bindEvents() {
     const button = event.target.closest("button[data-action]");
     if (!button) return;
     const { action, id } = button.dataset;
-    if (action === "edit-shift") editShift(id);
+    if (action === "edit-shift") {
+      if (dailyHoursEditDate && selectedDate === dailyHoursEditDate) {
+        returnToDailyHoursAfterEdit = true;
+      }
+      editShift(id);
+    }
     if (action === "copy-shift") copyShift(id);
     if (action === "delete-shift") deleteShift(id);
   });
