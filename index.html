@@ -761,6 +761,7 @@ textarea.field.compact-note {
 }
 
 .daily-hours-row {
+  width: 100%;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 10px;
@@ -769,6 +770,22 @@ textarea.field.compact-note {
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #fff;
+  appearance: none;
+  -webkit-appearance: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.daily-hours-row:focus-visible {
+  outline: 2px solid var(--green);
+  outline-offset: 2px;
+}
+
+.daily-hours-row:active {
+  border-color: var(--green);
+  background: var(--mint);
 }
 
 .daily-hours-date {
@@ -1223,7 +1240,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-09-01-3";
+const APP_VERSION = "2026-09-04-1";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1997,16 +2014,31 @@ function renderDailyHours() {
     return;
   }
   els.dailyHoursList.innerHTML = rows.map(row => `
-    <article class="daily-hours-row">
-      <div>
-        <div class="daily-hours-date">${dateWithWeekday(row.date)}</div>
-      </div>
-      <div class="daily-hours-value">
+    <button class="daily-hours-row" type="button" data-date="${row.date}" aria-label="編輯 ${dateWithWeekday(row.date)} 的班表">
+      <span>
+        <span class="daily-hours-date">${dateWithWeekday(row.date)}</span>
+      </span>
+      <span class="daily-hours-value">
         <span>${hoursText(row.hours)}</span>
         <span class="daily-hours-pay">${money(row.pay)}</span>
-      </div>
-    </article>
+      </span>
+    </button>
   `).join("");
+}
+
+function editDailyHoursDate(dateStr) {
+  const shifts = getDayShifts(dateStr);
+  if (!shifts.length) return;
+  selectedDate = dateStr;
+  visibleMonth = dateStr.slice(0, 7);
+  closeDailyHoursModal();
+  if (shifts.length === 1) {
+    editShift(shifts[0].id);
+    return;
+  }
+  showView("Shifts");
+  render();
+  toast("這天有多筆班表，請選要修改的班表");
 }
 
 function openDailyHoursModal() {
@@ -2504,6 +2536,11 @@ function bindEvents() {
   els.closeDailyHoursModalBtn.addEventListener("click", closeDailyHoursModal);
   els.dailyHoursModal.addEventListener("click", event => {
     if (event.target === els.dailyHoursModal) closeDailyHoursModal();
+  });
+  els.dailyHoursList.addEventListener("click", event => {
+    const row = event.target.closest(".daily-hours-row[data-date]");
+    if (!row) return;
+    editDailyHoursDate(row.dataset.date);
   });
   els.closeAuthModalBtn.addEventListener("click", closeAuthModal);
   els.cancelAuthBtn.addEventListener("click", closeAuthModal);
