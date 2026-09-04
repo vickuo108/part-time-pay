@@ -1240,7 +1240,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-09-04-3";
+const APP_VERSION = "2026-09-04-4";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1262,7 +1262,6 @@ const JOB_COLORS = [
 ];
 const MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
 const DAILY_REGULAR_HOURS = 8;
-const WEEKLY_REGULAR_HOURS = 40;
 const OVERTIME_HOURLY_RATE = 298;
 
 const els = {
@@ -1626,18 +1625,6 @@ function localDateStr(date) {
   return d.toISOString().slice(0, 10);
 }
 
-function parseDateStr(dateStr) {
-  const [year, month, day] = String(dateStr || "").split("-").map(Number);
-  return new Date(year || 1970, (month || 1) - 1, day || 1);
-}
-
-function weekKey(dateStr) {
-  const date = parseDateStr(dateStr);
-  const mondayOffset = (date.getDay() + 6) % 7;
-  date.setDate(date.getDate() - mondayOffset);
-  return localDateStr(date);
-}
-
 function monthKey(date) {
   const d = new Date(date);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -1731,7 +1718,6 @@ function calcShift(input) {
     regularHours: hours,
     overtimeHours: 0,
     dailyOvertimeHours: 0,
-    weeklyOvertimeHours: 0,
     pay: Math.max(0, pay)
   };
 }
@@ -1743,7 +1729,6 @@ function calculateShiftPays(shifts) {
     regularHours: 0,
     overtimeHours: 0,
     dailyOvertimeHours: 0,
-    weeklyOvertimeHours: 0,
     pay: 0
   }]));
 
@@ -1758,19 +1743,6 @@ function calculateShiftPays(shifts) {
     dailyUsed.set(shift.date, used + detail.hours);
   });
 
-  const weeklyRegularUsed = new Map();
-  sorted.forEach(shift => {
-    const detail = details.get(shift.id);
-    const key = weekKey(shift.date);
-    const used = weeklyRegularUsed.get(key) || 0;
-    const regularBeforeWeeklyRule = detail.regularHours;
-    const remainingRegular = Math.max(0, WEEKLY_REGULAR_HOURS - used);
-    detail.regularHours = Math.min(regularBeforeWeeklyRule, remainingRegular);
-    detail.weeklyOvertimeHours = Math.max(0, regularBeforeWeeklyRule - detail.regularHours);
-    detail.overtimeHours += detail.weeklyOvertimeHours;
-    weeklyRegularUsed.set(key, used + regularBeforeWeeklyRule);
-  });
-
   sorted.forEach(shift => {
     const detail = details.get(shift.id);
     const regularPay = detail.regularHours * shiftHourlyRate(shift);
@@ -1782,9 +1754,7 @@ function calculateShiftPays(shifts) {
 }
 
 function getMonthPayDetails(monthShifts = getMonthShifts()) {
-  const weekKeys = new Set(monthShifts.map(shift => weekKey(shift.date)));
-  const contextShifts = state.shifts.filter(shift => shift.date && weekKeys.has(weekKey(shift.date)));
-  return calculateShiftPays(contextShifts);
+  return calculateShiftPays(monthShifts);
 }
 
 function currentJob() {
