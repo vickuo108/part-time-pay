@@ -1240,7 +1240,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-09-04-4";
+const APP_VERSION = "2026-09-04-5";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1261,8 +1261,8 @@ const JOB_COLORS = [
   { bg: "#e3f6f8", text: "#0f6b78", dot: "#06b6d4" }
 ];
 const MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
-const DAILY_REGULAR_HOURS = 8;
-const OVERTIME_HOURLY_RATE = 298;
+const DAILY_REGULAR_HOURS = 10;
+const OVERTIME_RATE_MULTIPLIER = 1.67;
 
 const els = {
   monthLabel: document.getElementById("monthLabel"),
@@ -1425,6 +1425,10 @@ function shiftJobName(shift) {
 function shiftHourlyRate(shift) {
   const job = currentJobForShift(shift);
   return Number(job ? job.hourlyRate : (shift.hourlyRate || 0));
+}
+
+function shiftOvertimeHourlyRate(shift) {
+  return shiftHourlyRate(shift) * OVERTIME_RATE_MULTIPLIER;
 }
 
 function setSyncStatus(status, text) {
@@ -1746,7 +1750,7 @@ function calculateShiftPays(shifts) {
   sorted.forEach(shift => {
     const detail = details.get(shift.id);
     const regularPay = detail.regularHours * shiftHourlyRate(shift);
-    const overtimePay = detail.overtimeHours * OVERTIME_HOURLY_RATE;
+    const overtimePay = detail.overtimeHours * shiftOvertimeHourlyRate(shift);
     detail.pay = Math.max(0, regularPay + overtimePay + Number(shift.bonus || 0));
   });
 
@@ -1909,7 +1913,7 @@ function renderSelectedDay() {
     const calc = payDetails.get(shift.id) || calcShift(shift);
     const note = shift.note ? `<div class="shift-note">${escapeHtml(shift.note)}</div>` : "";
     const breakText = Number(shift.breakMinutes || 0) > 0 ? `｜休息 ${breakMinutesToHours(shift.breakMinutes)} 小時` : "";
-    const overtimeText = calc.overtimeHours > 0 ? `｜加班 ${hoursText(calc.overtimeHours)} x ${money(OVERTIME_HOURLY_RATE)}` : "";
+    const overtimeText = calc.overtimeHours > 0 ? `｜加班 ${hoursText(calc.overtimeHours)} x ${OVERTIME_RATE_MULTIPLIER}` : "";
     return `
       <article class="shift-item">
         <div class="shift-main">
