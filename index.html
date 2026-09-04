@@ -1240,7 +1240,7 @@ textarea.field.compact-note {
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-const APP_VERSION = "2026-09-04-5";
+const APP_VERSION = "2026-09-04-6";
 const STORAGE_KEY = "part_time_pay_app_v1";
 const CLOUD_DOC = "part-time-pay-main";
 const FIREBASE_APP_NAME = "partTimePay";
@@ -1261,8 +1261,10 @@ const JOB_COLORS = [
   { bg: "#e3f6f8", text: "#0f6b78", dot: "#06b6d4" }
 ];
 const MINUTE_OPTIONS = [0, 10, 20, 30, 40, 50];
-const DAILY_REGULAR_HOURS = 10;
-const OVERTIME_RATE_MULTIPLIER = 1.67;
+const DAILY_REGULAR_HOURS = 8;
+const DAILY_SECOND_OVERTIME_HOURS = 10;
+const FIRST_OVERTIME_HOURLY_RATE = 298;
+const SECOND_OVERTIME_HOURLY_RATE = 364;
 
 const els = {
   monthLabel: document.getElementById("monthLabel"),
@@ -1425,10 +1427,6 @@ function shiftJobName(shift) {
 function shiftHourlyRate(shift) {
   const job = currentJobForShift(shift);
   return Number(job ? job.hourlyRate : (shift.hourlyRate || 0));
-}
-
-function shiftOvertimeHourlyRate(shift) {
-  return shiftHourlyRate(shift) * OVERTIME_RATE_MULTIPLIER;
 }
 
 function setSyncStatus(status, text) {
@@ -1716,12 +1714,19 @@ function shiftHours(input) {
 
 function calcShift(input) {
   const hours = shiftHours(input);
-  const pay = hours * shiftHourlyRate(input) + Number(input.bonus || 0);
+  const regularHours = Math.min(hours, DAILY_REGULAR_HOURS);
+  const overtimeHours = Math.min(Math.max(0, hours - DAILY_REGULAR_HOURS), DAILY_SECOND_OVERTIME_HOURS - DAILY_REGULAR_HOURS);
+  const secondOvertimeHours = Math.max(0, hours - DAILY_SECOND_OVERTIME_HOURS);
+  const pay = regularHours * shiftHourlyRate(input)
+    + overtimeHours * FIRST_OVERTIME_HOURLY_RATE
+    + secondOvertimeHours * SECOND_OVERTIME_HOURLY_RATE
+    + Number(input.bonus || 0);
   return {
     hours,
-    regularHours: hours,
-    overtimeHours: 0,
-    dailyOvertimeHours: 0,
+    regularHours,
+    overtimeHours,
+    secondOvertimeHours,
+    dailyOvertimeHours: overtimeHours + secondOvertimeHours,
     pay: Math.max(0, pay)
   };
 }
@@ -1732,6 +1737,7 @@ function calculateShiftPays(shifts) {
     hours: shiftHours(shift),
     regularHours: 0,
     overtimeHours: 0,
+    secondOvertimeHours: 0,
     dailyOvertimeHours: 0,
     pay: 0
   }]));
@@ -1740,18 +1746,20 @@ function calculateShiftPays(shifts) {
   sorted.forEach(shift => {
     const detail = details.get(shift.id);
     const used = dailyUsed.get(shift.date) || 0;
-    const remainingRegular = Math.max(0, DAILY_REGULAR_HOURS - used);
-    detail.regularHours = Math.min(detail.hours, remainingRegular);
-    detail.dailyOvertimeHours = Math.max(0, detail.hours - detail.regularHours);
-    detail.overtimeHours = detail.dailyOvertimeHours;
-    dailyUsed.set(shift.date, used + detail.hours);
+    const shiftEnd = used + detail.hours;
+    detail.regularHours = Math.max(0, Math.min(shiftEnd, DAILY_REGULAR_HOURS) - used);
+    detail.overtimeHours = Math.max(0, Math.min(shiftEnd, DAILY_SECOND_OVERTIME_HOURS) - Math.max(used, DAILY_REGULAR_HOURS));
+    detail.secondOvertimeHours = Math.max(0, shiftEnd - Math.max(used, DAILY_SECOND_OVERTIME_HOURS));
+    detail.dailyOvertimeHours = detail.overtimeHours + detail.secondOvertimeHours;
+    dailyUsed.set(shift.date, shiftEnd);
   });
 
   sorted.forEach(shift => {
     const detail = details.get(shift.id);
     const regularPay = detail.regularHours * shiftHourlyRate(shift);
-    const overtimePay = detail.overtimeHours * shiftOvertimeHourlyRate(shift);
-    detail.pay = Math.max(0, regularPay + overtimePay + Number(shift.bonus || 0));
+    const firstOvertimePay = detail.overtimeHours * FIRST_OVERTIME_HOURLY_RATE;
+    const secondOvertimePay = detail.secondOvertimeHours * SECOND_OVERTIME_HOURLY_RATE;
+    detail.pay = Math.max(0, regularPay + firstOvertimePay + secondOvertimePay + Number(shift.bonus || 0));
   });
 
   return details;
@@ -1913,7 +1921,10 @@ function renderSelectedDay() {
     const calc = payDetails.get(shift.id) || calcShift(shift);
     const note = shift.note ? `<div class="shift-note">${escapeHtml(shift.note)}</div>` : "";
     const breakText = Number(shift.breakMinutes || 0) > 0 ? `｜休息 ${breakMinutesToHours(shift.breakMinutes)} 小時` : "";
-    const overtimeText = calc.overtimeHours > 0 ? `｜加班 ${hoursText(calc.overtimeHours)} x ${OVERTIME_RATE_MULTIPLIER}` : "";
+    const overtimeParts = [];
+    if (calc.overtimeHours > 0) overtimeParts.push(`加班 ${hoursText(calc.overtimeHours)} x ${money(FIRST_OVERTIME_HOURLY_RATE)}`);
+    if (calc.secondOvertimeHours > 0) overtimeParts.push(`加班 ${hoursText(calc.secondOvertimeHours)} x ${money(SECOND_OVERTIME_HOURLY_RATE)}`);
+    const overtimeText = overtimeParts.length ? `｜${overtimeParts.join("｜")}` : "";
     return `
       <article class="shift-item">
         <div class="shift-main">
